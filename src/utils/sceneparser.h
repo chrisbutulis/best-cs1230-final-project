@@ -1,5 +1,6 @@
 #pragma once
 
+#include <GL/glew.h>
 #include "scenedata.h"
 #include <vector>
 #include <string>
@@ -8,6 +9,8 @@
 struct RenderShapeData {
     ScenePrimitive primitive;
     glm::mat4 ctm; // the cumulative transformation matrix
+    std::vector<GLfloat> data;
+    glm::mat4 inversectm;
 };
 
 // Struct which contains all the data needed to render a scene

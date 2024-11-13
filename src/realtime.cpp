@@ -1,12 +1,25 @@
 #include "realtime.h"
-
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "shapes/Cube.h"
+#include "shapes/Sphere.h"
+#include "utils/shaderloader.h"
 #include <QCoreApplication>
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <iostream>
 #include "settings.h"
+#include "shapes/cone.h"
+#include "shapes/cylinder.h"
 
 // ================== Project 5: Lights, Camera
+
+Cone Cone;
+Cylinder Cylinder;
+Sphere Sphere;
+Cube Cube;
+
 
 Realtime::Realtime(QWidget *parent)
     : QOpenGLWidget(parent)
@@ -24,6 +37,8 @@ Realtime::Realtime(QWidget *parent)
 
     // If you must use this function, do not edit anything above this
 }
+
+
 
 void Realtime::finish() {
     killTimer(m_timer);
@@ -57,11 +72,72 @@ void Realtime::initializeGL() {
     glViewport(0, 0, size().width() * m_devicePixelRatio, size().height() * m_devicePixelRatio);
 
     // Students: anything requiring OpenGL calls when the program starts should be done here
+    glClearColor(0.1,0.1,0.1,1);
+
+    // Shader setup (DO NOT EDIT)
+    m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
+    // ================== Vertex Buffer Objects
+
+    // Generate VBO
+    glGenBuffers(1, &m_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 0, 0, GL_STATIC_DRAW);
+
+    // Generate VAO
+    glGenVertexArrays(1, &m_vao);
+    glBindVertexArray(m_vao);
+
+    // Set up vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0); // position
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_TRUE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat))); // normal
+    glEnableVertexAttribArray(1);
+
+    // Unbind the VAO and VBO for now
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+void Realtime::paintGL() {
+    // Clear the color and depth buffers
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Bind the shader
+    glUseProgram(m_shader);
+
+    // Set up the projection and view matrices
+    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f/3.0f, settings.nearPlane, settings.farPlane);
+    glm::mat4 View = glm::lookAt(
+        glm::vec3(renderData.cameraData.pos),
+        glm::vec3(renderData.cameraData.look),
+        glm::vec3(renderData.cameraData.up)
+        );
+
+    glUniformMatrix4fv(glGetUniformLocation(m_shader, "projMatrix"), 1, GL_FALSE, &Projection[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_shader, "viewMatrix"), 1, GL_FALSE, &View[0][0]);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    for (auto& shape : renderData.shapes) {
+        glUniformMatrix4fv(glGetUniformLocation(m_shader, "modelMatrix"), 1, GL_FALSE, &shape.ctm[0][0]);
+        glUniform4fv(glGetUniformLocation(m_shader, "shapeColor"), 1, glm::value_ptr(shape.primitive.material.cAmbient*renderData.globalData.ka));
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * shape.data.size(), shape.data.data(), GL_STATIC_DRAW);
+
+        for (auto& light : renderData.lights) {
+
+            glUniform4fv(glGetUniformLocation(m_shader, "shapeDiffuse"), 1, glm::value_ptr(shape.primitive.material.cDiffuse*renderData.globalData.kd));
+            glUniform4fv(glGetUniformLocation(m_shader, "lightPos"), 1, glm::value_ptr(light.pos));
+
+            glUniform4fv(glGetUniformLocation(m_shader, "shapeSpecular"), 1, glm::value_ptr(shape.primitive.material.cSpecular*renderData.globalData.ks));
+            glUniform4fv(glGetUniformLocation(m_shader, "view"), 1, glm::value_ptr(glm::inverse(View) * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)));
+        }
+
+        glBindVertexArray(m_vao);
+        glDrawArrays(GL_TRIANGLES, 0, shape.data.size() / 6);
+        glBindVertexArray(0);
+    }
+
+    glUseProgram(0);
 }
 
-void Realtime::paintGL() {
-    // Students: anything requiring OpenGL calls every frame should be done here
-}
 
 void Realtime::resizeGL(int w, int h) {
     // Tells OpenGL how big the screen is
@@ -71,12 +147,33 @@ void Realtime::resizeGL(int w, int h) {
 }
 
 void Realtime::sceneChanged() {
-
+    SceneParser::parse(settings.sceneFilePath, renderData);
     update(); // asks for a PaintGL() call to occur
 }
 
 void Realtime::settingsChanged() {
-
+    Cylinder.updateParams(settings.shapeParameter1,settings.shapeParameter2);
+    Cone.updateParams(settings.shapeParameter1,settings.shapeParameter2);
+    Cube.updateParams(settings.shapeParameter1);
+    Sphere.updateParams(settings.shapeParameter1,settings.shapeParameter2);
+    for (auto& shape : renderData.shapes) {
+        switch(shape.primitive.type){
+        case PrimitiveType::PRIMITIVE_CYLINDER:
+            shape.data = Cylinder.generateShape();
+            break;
+        case PrimitiveType::PRIMITIVE_CONE:
+            shape.data = Cone.generateShape();
+            break;
+        case PrimitiveType::PRIMITIVE_CUBE:
+            shape.data = Cube.generateShape();
+            break;
+        case PrimitiveType::PRIMITIVE_SPHERE:
+            shape.data = Sphere.generateShape();
+            break;
+        default:
+            break;
+        }
+    }
     update(); // asks for a PaintGL() call to occur
 }
 

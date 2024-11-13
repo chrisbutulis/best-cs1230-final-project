@@ -12,6 +12,7 @@
 #include <QOpenGLWidget>
 #include <QTime>
 #include <QTimer>
+#include "utils/sceneparser.h"
 
 class Realtime : public QOpenGLWidget
 {
@@ -49,4 +50,9 @@ private:
 
     // Device Correction Variables
     double m_devicePixelRatio;
+
+    GLuint m_shader; // Stores id of shader program
+    GLuint m_vbo;    // Stores id of VBO
+    GLuint m_vao;
+    RenderData renderData;
 };
