@@ -8,9 +8,8 @@ class Cube
 {
 public:
     void updateParams(int param1);
-    std::vector<float> generateShape() { return m_vertexData;
-    GLuint vbo, vao;
-}
+    std::vector<float> generateShape() { return m_vertexData;}
+    GLuint vbo, vao = 0;
 
 private:
     void insertVec3(std::vector<float> &data, glm::vec3 v);

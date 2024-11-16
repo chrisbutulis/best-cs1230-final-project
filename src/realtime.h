@@ -54,5 +54,6 @@ private:
     GLuint m_shader; // Stores id of shader program
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
+    glm::mat4 m_view;
     RenderData renderData;
 };

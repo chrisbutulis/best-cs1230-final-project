@@ -134,8 +134,8 @@ void Cylinder::makeWedge(float currentTheta, float nextTheta) {
 
 void Cylinder::setVertexData() {
     // TODO for Project 5: Lights, Camera
-    float thetaStep = glm::radians(360.f / m_param2);
-    for (int i =0; i<m_param2; i++){
+    float thetaStep = glm::radians(360.f /glm::max(m_param2,2));
+    for (int i =0; i<    glm::max(m_param2,2); i++){
         makeWedge(i* thetaStep, (i+1) * thetaStep);
     }
 }

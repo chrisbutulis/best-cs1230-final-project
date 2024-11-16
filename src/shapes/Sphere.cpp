@@ -33,10 +33,10 @@ void Sphere::makeWedge(float currentTheta, float nextTheta) {
     // Task 6: create a single wedge of the sphere using the
     //         makeTile() function you implemented in Task 5
     // Note: think about how param 1 comes into play here!
-    float partition = 180.0f / (m_param1+1);
+    float partition = 180.0f / (glm::max(m_param1,2));
     float radius = 0.5f;
 
-    for (int i = 0; i <= m_param1; i++) {
+    for (int i = 0; i < glm::max(m_param1,2); i++) {
         // Latitude angles (from 0 to 180 degrees)
         float phi1 = glm::radians(partition * i);
         float phi2 = glm::radians(partition * (i + 1));
@@ -75,8 +75,8 @@ void Sphere::makeSphere() {
     // Task 7: create a full sphere using the makeWedge() function you
     //         implemented in Task 6
     // Note: think about how param 2 comes into play here!
-    float thetaStep = glm::radians(360.f / m_param2);
-    for (int i =0; i<m_param2; i++){
+    float thetaStep = glm::radians(360.f /glm::max(m_param2,2));
+    for (int i =0; i<    glm::max(m_param2,2); i++){
         makeWedge(i* thetaStep, (i+1) * thetaStep);
     }
 }

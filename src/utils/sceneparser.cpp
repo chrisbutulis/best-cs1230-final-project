@@ -48,26 +48,6 @@ void dfsTree(SceneNode* scene, glm::mat4 ctm, std::vector<RenderShapeData>& rend
             shapeData.ctm = ctm;
             shapeData.inversectm = glm::inverse(ctm);
             renderShapes.push_back(shapeData);
-            switch(primitive->type){
-            case PrimitiveType::PRIMITIVE_CYLINDER:
-                cylinder.updateParams(settings.shapeParameter1,settings.shapeParameter2);
-                shapeData.data = cylinder.generateShape();
-                break;
-            case PrimitiveType::PRIMITIVE_CONE:
-                cone.updateParams(settings.shapeParameter1,settings.shapeParameter2);
-                shapeData.data = cone.generateShape();
-                break;
-            case PrimitiveType::PRIMITIVE_SPHERE:
-                sphere.updateParams(settings.shapeParameter1,settings.shapeParameter2);
-                shapeData.data = sphere.generateShape();
-                break;
-            case PrimitiveType::PRIMITIVE_CUBE:
-                cube.updateParams(settings.shapeParameter1);
-                shapeData.data = cube.generateShape();
-                break;
-            default:
-                break;
-            }
         }
 
         for (const auto& light : scene->lights) {
@@ -81,7 +61,6 @@ void dfsTree(SceneNode* scene, glm::mat4 ctm, std::vector<RenderShapeData>& rend
                 lightData.pos = ctm * glm::vec4(0.0f, 0.f, 0.f, 1.f);
             }
             if (light->type == LightType::LIGHT_SPOT|| light->type == LightType::LIGHT_DIRECTIONAL) {
-                // lightData.pos = ctm * glm::vec4(0.0f, 0.f, 0.f, 1.f);
                 lightData.dir = ctm * light->dir;
                 lightData.penumbra = light->penumbra;
                 lightData.angle = light->angle;

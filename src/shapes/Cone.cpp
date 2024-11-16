@@ -21,30 +21,91 @@ void Cone::makeTile(
     insertVec3(m_vertexData,normal1);
 }
 
+void Cone::makeTileTop(
+    glm::vec3 topRight,
+    glm::vec3 bottomLeft,
+    glm::vec3 bottomRight) {
+    float slopeY = 0.5f; // r/h for a unit cone
+    glm::vec3 normalTopRight = glm::normalize(glm::vec3(topRight.x, 0.25 - 0.5 * topRight.y, topRight.z));
+    glm::vec3 normalBottomLeft = glm::normalize(glm::vec3(2*bottomLeft.x, 0.25 - 0.5 * bottomLeft.y, 2*bottomLeft.z));
+    glm::vec3 normalBottomRight = glm::normalize(glm::vec3(2*bottomRight.x, 0.25 - 0.5 * bottomRight.y, 2*bottomRight.z));
+
+    insertVec3(m_vertexData,glm::vec3(0.f,0.5f,0.f));
+    insertVec3(m_vertexData,normalTopRight);
+    insertVec3(m_vertexData,bottomLeft);
+    insertVec3(m_vertexData,normalBottomLeft);
+    insertVec3(m_vertexData,bottomRight);
+    insertVec3(m_vertexData,normalBottomRight);
+}
+
 void Cone::makeTileCuadrilateral(glm::vec3 topLeft,
                                  glm::vec3 topRight,
                                  glm::vec3 bottomLeft,
                                  glm::vec3 bottomRight) {
     // Task 2: create a tile (i.e. 2 triangles) based on 4 given points.
-    glm::vec3 normal1 = glm::normalize(glm::cross(topLeft - bottomLeft,topLeft - bottomRight));
-    insertVec3(m_vertexData,topLeft);
-    insertVec3(m_vertexData,normal1);
-    insertVec3(m_vertexData,bottomLeft);
-    insertVec3(m_vertexData,normal1);
-    insertVec3(m_vertexData,topRight);
-    insertVec3(m_vertexData,normal1);
-    insertVec3(m_vertexData,topRight);
-    insertVec3(m_vertexData,normal1);
-    insertVec3(m_vertexData,bottomLeft);
-    insertVec3(m_vertexData,normal1);
-    insertVec3(m_vertexData,bottomRight);
-    insertVec3(m_vertexData,normal1);
+    glm::vec3 normal1 = glm::normalize(glm::vec3{0,-1,0});
+    insertVec3(m_vertexData, topRight);
+    insertVec3(m_vertexData, normal1);
+
+    insertVec3(m_vertexData, topLeft);
+    insertVec3(m_vertexData, normal1);
+
+    insertVec3(m_vertexData, bottomRight);
+    insertVec3(m_vertexData, normal1);
+
+    // Insert vertices and normals for the second triangle (topRight, bottomLeft, bottomRight)
+
+    insertVec3(m_vertexData, bottomLeft);
+    insertVec3(m_vertexData, normal1);
+
+    insertVec3(m_vertexData, bottomRight);
+    insertVec3(m_vertexData, normal1);
+
+    insertVec3(m_vertexData, topLeft);
+    insertVec3(m_vertexData, normal1);
 }
+
+void Cone::makeTileSide(glm::vec3 topLeft,
+                        glm::vec3 topRight,
+                        glm::vec3 bottomLeft,
+                        glm::vec3 bottomRight) {
+    // Calculate normals for each vertex based on the true slope of the cone
+    // float slopeY = 0.25 - 0.5 * y; // r/h for a unit cone
+
+    glm::vec3 normalTopLeft = glm::normalize(glm::vec3(2*topLeft.x, 0.25 - 0.5 * topLeft.y, 2*topLeft.z));
+    glm::vec3 normalTopRight = glm::normalize(glm::vec3(2*topRight.x, 0.25 - 0.5 * topRight.y, 2*topRight.z));
+    glm::vec3 normalBottomLeft = glm::normalize(glm::vec3(2*bottomLeft.x, 0.25 - 0.5 * bottomLeft.y, 2*bottomLeft.z));
+    glm::vec3 normalBottomRight = glm::normalize(glm::vec3(2*bottomRight.x, 0.25 - 0.5 * bottomRight.y, 2*bottomRight.z));
+
+    // Insert vertices and normals for the first triangle (topLeft, bottomLeft, topRight)
+    insertVec3(m_vertexData, topRight);
+    insertVec3(m_vertexData, normalTopRight);
+
+    insertVec3(m_vertexData, topLeft);
+    insertVec3(m_vertexData, normalTopLeft);
+
+    insertVec3(m_vertexData, bottomRight);
+    insertVec3(m_vertexData, normalBottomRight);
+
+    // Insert vertices and normals for the second triangle (topRight, bottomLeft, bottomRight)
+
+    insertVec3(m_vertexData, bottomLeft);
+    insertVec3(m_vertexData, normalBottomLeft);
+
+    insertVec3(m_vertexData, bottomRight);
+    insertVec3(m_vertexData, normalBottomRight);
+
+    insertVec3(m_vertexData, topLeft);
+    insertVec3(m_vertexData, normalTopLeft);
+}
+
+
 
 void Cone::makeWedge(float currentTheta, float nextTheta) {
     // Task 6: create a single wedge of the sphere using the
     //         makeTile() function you implemented in Task 5
     // Note: think about how param 1 comes into play here!
+
     float unitRadius = 0.5f/m_param1;
 
     glm::vec3 leftBase = {0,0,0};
@@ -60,7 +121,7 @@ void Cone::makeWedge(float currentTheta, float nextTheta) {
         -0.5f,
         unitRadius* glm::sin(currentTheta)
         );
-    makeTile({0,0.5f,0}, {leftBase.x,0.5f-2*unitRadius,leftBase.z},{rightBase.x,0.5f-2*unitRadius,rightBase.z});
+    makeTileTop({(glm::cos(nextTheta) + glm::cos(currentTheta))*0.5f ,0.5f-2*0.5f,(glm::sin(nextTheta) + glm::sin(currentTheta))*0.5f}, {leftBase.x,0.5f-2*unitRadius,leftBase.z},{rightBase.x,0.5f-2*unitRadius,rightBase.z});
 
     makeTile({0,-0.5f,0}, rightBase,leftBase);
 
@@ -80,7 +141,7 @@ void Cone::makeWedge(float currentTheta, float nextTheta) {
 
         // Create the tile for this portion of the wedge
         makeTileCuadrilateral(rightBase,leftBase, bottomRight,bottomLeft);
-        makeTileCuadrilateral({leftBase.x,0.5f-2*(i)*unitRadius,leftBase.z},{rightBase.x,0.5f-2*(i)*unitRadius,rightBase.z},{bottomLeft.x,0.5f-2*(i+1)*unitRadius,bottomLeft.z},{bottomRight.x,0.5f-2*(i+1)*unitRadius,bottomRight.z});
+        makeTileSide({leftBase.x,0.5f-2*(i)*unitRadius,leftBase.z},{rightBase.x,0.5f-2*(i)*unitRadius,rightBase.z},{bottomLeft.x,0.5f-2*(i+1)*unitRadius,bottomLeft.z},{bottomRight.x,0.5f-2*(i+1)*unitRadius,bottomRight.z});
         leftBase = bottomLeft;
         rightBase = bottomRight;
     }
@@ -89,8 +150,8 @@ void Cone::makeWedge(float currentTheta, float nextTheta) {
 
 void Cone::setVertexData() {
     // TODO for Project 5: Lights, Camera
-    float thetaStep = glm::radians(360.f / m_param2);
-    for (int i =0; i<m_param2; i++){
+    float thetaStep = glm::radians(360.f / glm::max(m_param2,2));
+    for (int i =0; i<glm::max(m_param2,2); i++){
         makeWedge(i* thetaStep, (i+1) * thetaStep);
     }
 }
