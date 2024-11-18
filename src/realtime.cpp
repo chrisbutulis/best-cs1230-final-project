@@ -101,8 +101,14 @@ void Realtime::paintGL() {
 void Realtime::resizeGL(int w, int h) {
     // Tells OpenGL how big the screen is
     glViewport(0, 0, size().width() * m_devicePixelRatio, size().height() * m_devicePixelRatio);
-
+    settings.aspectRatio = float((w*1.f)/(h*1.f));
     // Students: anything requiring OpenGL calls when the program starts should be done here
+    m_view = OpenGLHelper::createPerspectiveProjectionMatrix(
+        renderData.cameraData.heightAngle,
+        settings.nearPlane,
+        settings.farPlane,
+        settings.aspectRatio
+        );
 }
 
 void Realtime::sceneChanged() {

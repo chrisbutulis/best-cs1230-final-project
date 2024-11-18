@@ -14,7 +14,7 @@
 class OpenGLHelper {
 public:
     static void bindVBOVAO(GLuint* vbo, GLuint* vao);
-    static glm::mat4 createPerspectiveProjectionMatrix(float heightAngle, float nearPlane, float farPlane);
+    static glm::mat4 createPerspectiveProjectionMatrix(float heightAngle, float nearPlane, float farPlane, float aspectRatio);
     static void deleteBuffersAndVAOs(GLuint* buffers, GLuint* arrays, int count);
     static void updateShapesAndBuffers(RenderData& renderData,
                                 glm::mat4 &m_view,

@@ -19,7 +19,7 @@ void OpenGLHelper::bindVBOVAO(GLuint* vbo, GLuint* vao) {
     glBindVertexArray(0);
 }
 
-glm::mat4 OpenGLHelper::createPerspectiveProjectionMatrix(float heightAngle, float nearPlane, float farPlane) {
+glm::mat4 OpenGLHelper::createPerspectiveProjectionMatrix(float heightAngle, float nearPlane, float farPlane, float aspectRatio) {
     float c = -nearPlane / farPlane;
 
     glm::mat4 reMap = glm::mat4(0.0f);
@@ -37,7 +37,7 @@ glm::mat4 OpenGLHelper::createPerspectiveProjectionMatrix(float heightAngle, flo
     depthRangeMatrix[3][2] = -c / (1.f + c);
 
     glm::mat4 perspectiveDivisionMatrix = glm::mat4(0.0f);
-    perspectiveDivisionMatrix[0][0] = 1.0f / (farPlane * (4.f / 3.f) * tan(heightAngle / 2));
+    perspectiveDivisionMatrix[0][0] = 1.0f / (farPlane * aspectRatio * tan(heightAngle / 2));
     perspectiveDivisionMatrix[1][1] = 1.0f / (farPlane * tan(heightAngle / 2));
     perspectiveDivisionMatrix[2][2] = 1.f / farPlane;
     perspectiveDivisionMatrix[3][3] = 1.0f;
@@ -85,7 +85,8 @@ void OpenGLHelper::updateShapesAndBuffers(RenderData& renderData,
     m_view = OpenGLHelper::createPerspectiveProjectionMatrix(
         renderData.cameraData.heightAngle,
         settings.nearPlane,
-        settings.farPlane
+        settings.farPlane,
+        settings.aspectRatio
         );
 
     // Calculate data sizes for shapes

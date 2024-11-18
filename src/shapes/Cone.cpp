@@ -26,12 +26,12 @@ void Cone::makeTileTop(
     glm::vec3 bottomLeft,
     glm::vec3 bottomRight) {
     float slopeY = 0.5f; // r/h for a unit cone
-    glm::vec3 normalTopRight = glm::normalize(glm::vec3(topRight.x, 0.25 - 0.5 * topRight.y, topRight.z));
+    glm::vec3 normalTopRight = glm::normalize(glm::vec3(topRight.x, 0.f, topRight.z));
     glm::vec3 normalBottomLeft = glm::normalize(glm::vec3(2*bottomLeft.x, 0.25 - 0.5 * bottomLeft.y, 2*bottomLeft.z));
     glm::vec3 normalBottomRight = glm::normalize(glm::vec3(2*bottomRight.x, 0.25 - 0.5 * bottomRight.y, 2*bottomRight.z));
 
     insertVec3(m_vertexData,glm::vec3(0.f,0.5f,0.f));
-    insertVec3(m_vertexData,normalTopRight);
+    insertVec3(m_vertexData,glm::normalize(glm::vec3(normalTopRight.x, 0.5f, normalTopRight.z)));
     insertVec3(m_vertexData,bottomLeft);
     insertVec3(m_vertexData,normalBottomLeft);
     insertVec3(m_vertexData,bottomRight);
