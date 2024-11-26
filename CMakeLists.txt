@@ -47,6 +47,8 @@ add_executable(${PROJECT_NAME}
     src/shapes/Cube.h src/shapes/Cube.cpp
     src/utils/openglhelper.h src/utils/openglhelper.cpp
     src/utils/paintglhelper.h src/utils/paintglhelper.cpp
+    src/myShader.vert
+    src/myShader.frag
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
@@ -74,6 +76,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
     FILES
         resources/shaders/default.frag
         resources/shaders/default.vert
+        resources/shaders/postP.frag
+        resources/shaders/postP.vert
 )
 
 # GLEW: this provides support for Windows (including 64-bit)
