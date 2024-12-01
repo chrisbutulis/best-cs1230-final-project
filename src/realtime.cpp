@@ -24,7 +24,8 @@ Cube Cube;
 
 
 Realtime::Realtime(QWidget *parent)
-    : QOpenGLWidget(parent)
+    : QOpenGLWidget(parent),
+    m_fishingRod(5.0f, 0.2f)
 {
     m_prev_mouse_pos = glm::vec2(size().width()/2, size().height()/2);
     setMouseTracking(true);
@@ -36,10 +37,10 @@ Realtime::Realtime(QWidget *parent)
     m_keyMap[Qt::Key_D]       = false;
     m_keyMap[Qt::Key_Control] = false;
     m_keyMap[Qt::Key_Space]   = false;
-
     // If you must use this function, do not edit anything above this
 }
 int m_defaultFBO = 2;
+float f = 0.f;
 GLuint m_fbo_texture;
 GLuint m_fbo_renderbuffer;
 GLuint m_fbo, m_texture_shader;
@@ -156,18 +157,13 @@ void Realtime::initializeGL() {
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
 
 
-    // Generate and bind VAOs for shapes (Cone, Cylinder, Sphere, Cube)
     OpenGLHelper::bindVBOVAO(&Cone.vbo, &Cone.vao);
     OpenGLHelper::bindVBOVAO(&Cylinder.vbo, &Cylinder.vao);
     OpenGLHelper::bindVBOVAO(&Sphere.vbo, &Sphere.vao);
     OpenGLHelper::bindVBOVAO(&Cube.vbo, &Cube.vao);
-
     glUseProgram(m_texture_shader);
     glUniform1i(glGetUniformLocation(m_texture_shader, "s2D"), 0);
 
-    // Task 11: Fix this "fullscreen" quad's vertex data
-    // Task 12: Play around with different values!
-    // Task 13: Add UV coordinates
     std::vector<GLfloat> fullscreen_quad_data = {
         //  POSITIONS          //   UV COORDINATES
         -1.f,  1.f, 0.0f,       0.0f, 1.0f,  // Top-left
@@ -186,30 +182,26 @@ void Realtime::initializeGL() {
     glGenVertexArrays(1, &m_fullscreen_vao);
     glBindVertexArray(m_fullscreen_vao);
 
-    // Task 14: modify the code below to add a second attribute to the vertex attribute array
-    // Enable and set vertex attribute for positions
+
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
 
-    // Enable and set vertex attribute for UV coordinates
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
 
 
-    // Unbind the fullscreen quad's VBO and VAO
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     makeFBO();
+    m_fishVector.push_back(fish(1));
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
     glUseProgram(m_texture_shader);
-    // Task 32: Set your bool uniform on whether or not to filter the texture drawn
     glUniform1i(glGetUniformLocation(m_texture_shader, "postP"), postP);
     glUniform1i(glGetUniformLocation(m_texture_shader, "postP2"), postP2);
     glBindVertexArray(m_fullscreen_vao);
-    // Task 10: Bind "texture" to slot 0
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -218,28 +210,69 @@ void paintTexture(GLuint texture, bool postP,bool postP2){
     glUseProgram(0);
 }
 
+float pressDuration = 0.0f;
+bool isThrowing = false;
+bool isRetracting = false;
+float t = 0;
+
 void Realtime::paintGL() {
- // Use m_fbo_width and m_fbo_height for FBO dimensions
+    t+=0.01;
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
-    // Task 28: Call glViewport
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
     glUseProgram(m_shader);
+    m_fishingRod.render(m_shader,renderData.globalData);
 
+    for(int j =0; j<m_fishVector.size();j++){
+        // m_fishVector[j].moveForward();
+        // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+        m_fishVector[j].update(t);
+        if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
+            m_fishVector[j].changeColor();
+        }
+        m_fishVector[j].render(m_shader,renderData.globalData);
+    }
     PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
-
     glUseProgram(0);
 
+    SceneCameraData& camera = renderData.cameraData;
+    glm::vec3 position = glm::vec3(camera.pos);
+    glm::vec3 look = glm::normalize(glm::vec3(camera.look));
+    glm::vec3 up = glm::normalize(glm::vec3(camera.up));
 
-    // Task 25: Bind the default framebuffer
+    if (m_mouseDown) {
+        m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
+        isRetracting = false;
+        // Increase the press duration while the mouse is held down
+        pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
+        m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
+    } else if (pressDuration > 0) {
+        // Start the forward throw on mouse release
+        isThrowing = true;
+        pressDuration = 0.0f; // Reset press duration
+    }
+
+    if (isThrowing) {
+        m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
+        f += 0.5f; // Progress forward motion
+        if (f > 30.f) {
+            // End the throw after the forward motion is complete
+            isThrowing = false;
+            f = 0.0f;
+            isRetracting = true;
+        }
+    }
+
+    if (isRetracting){
+        m_fishingRod.drawFishingRodBack(0,glm::normalize(glm::cross(look,up)));
+    }
+
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
-    glViewport(0, 0, m_screen_width, m_screen_height);  // Use m_fbo_width and m_fbo_height for FBO dimensions
-    // Task 26: Clear the color and depth buffers
+    glViewport(0, 0, m_screen_width, m_screen_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // Task 27: Call paintTexture to draw our FBO color attachment texture | Task 31: Set bool parameter to true
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
 }
 
@@ -283,12 +316,25 @@ void Realtime::sceneChanged() {
             break;
         }
     }
+    for(int j =0; j<m_fishVector.size();j++){
+        m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
+    }
+    m_fishingRod.setVAOandDataSize(Cylinder.vao,Cylinder.generateShape().size());
     OpenGLHelper::updateShapesAndBuffers(renderData, m_view, Cylinder, Cone, Cube, Sphere, settings);
+    SceneCameraData& camera = renderData.cameraData;
+    glm::vec3 position = glm::vec3(camera.pos);
+    glm::vec3 look = glm::normalize(glm::vec3(camera.look));
+    glm::vec3 up = glm::normalize(glm::vec3(camera.up));
+    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
     update();
 }
 
 void Realtime::settingsChanged() {
     OpenGLHelper::updateShapesAndBuffers(renderData, m_view, Cylinder, Cone, Cube, Sphere, settings);
+    for(int j =0; j<m_fishVector.size();j++){
+        m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
+    }
+    m_fishingRod.setVAOandDataSize(Cylinder.vao,Cylinder.generateShape().size());
     update();
 }
 
@@ -329,14 +375,14 @@ return glm::mat3 {cosTheta + Ux * Ux * (1 - cosTheta), Ux*Uy * (1 - cosTheta) + 
 
 
 
-void rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float xOffset, float yOffset, float sensitivity = 0.1f) {
+void Realtime::rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float xOffset, float yOffset, float sensitivity) {
 
     glm::mat3 Xmat = rodriguesRotate(glm::vec3{0,1,0}, glm::radians(xOffset*0.5f));
 
     glm::vec3 right = glm::normalize(glm::cross(lookVector, up));
-
+    // m_fishingRod.setRotation(glm::vec3{0,1,0}, glm::radians(xOffset*0.5f));
     glm::mat3 Ymat =  rodriguesRotate(right, glm::radians(yOffset*0.5f));
-
+    // m_fishingRod.setRotation(right, glm::radians(yOffset*0.5f));
     glm::vec3 newLook = Ymat * Xmat * glm::vec3(lookVector);
     glm::vec3 newUp = Ymat * Xmat * glm::vec3(up);
     lookVector = newLook;
@@ -368,6 +414,8 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
         update(); // asks for a PaintGL() call to occur
     }
 }
+
+
 
 void Realtime::timerEvent(QTimerEvent *event) {
     int elapsedms   = m_elapsedTimer.elapsed();
@@ -409,6 +457,15 @@ void Realtime::timerEvent(QTimerEvent *event) {
     if (m_keyMap[Qt::Key_Control]) {
         // Move forward in the look direction
         position -= glm::vec3{0,1,0} * movementSpeed * deltaTime;
+    }
+
+
+
+    if (m_keyMap[Qt::Key_X]) {
+        // Reset everything on Space key
+        pressDuration = 0;
+        f = 0;
+        isThrowing = false;
     }
 
     // Update the camera's position

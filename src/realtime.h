@@ -1,6 +1,7 @@
 #pragma once
 
 // Defined before including GLEW to suppress deprecation messages on macOS
+#include "fish.h"
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
 #endif
@@ -13,6 +14,7 @@
 #include <QTime>
 #include <QTimer>
 #include "utils/sceneparser.h"
+#include "FishingRod.h"
 
 class Realtime : public QOpenGLWidget
 {
@@ -38,11 +40,12 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void timerEvent(QTimerEvent *event) override;
+    void rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float xOffset, float yOffset, float sensitivity = 0.1f);
 
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
     QElapsedTimer m_elapsedTimer;                       // Stores timer which keeps track of actual time between frames
-
+    FishingRod m_fishingRod;
     // Input Related Variables
     bool m_mouseDown = false;                           // Stores state of left mouse button
     glm::vec2 m_prev_mouse_pos;                         // Stores mouse position
@@ -50,7 +53,7 @@ private:
 
     // Device Correction Variables
     double m_devicePixelRatio;
-
+    std::vector<fish> m_fishVector;
     GLuint m_shader; // Stores id of shader program
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
