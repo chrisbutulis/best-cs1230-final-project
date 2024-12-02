@@ -242,9 +242,9 @@ void Realtime::paintGL() {
     glm::vec3 position = glm::vec3(camera.pos);
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
+    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
 
     if (m_mouseDown) {
-        m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
         isRetracting = false;
         // Increase the press duration while the mouse is held down
         pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
@@ -457,15 +457,6 @@ void Realtime::timerEvent(QTimerEvent *event) {
     if (m_keyMap[Qt::Key_Control]) {
         // Move forward in the look direction
         position -= glm::vec3{0,1,0} * movementSpeed * deltaTime;
-    }
-
-
-
-    if (m_keyMap[Qt::Key_X]) {
-        // Reset everything on Space key
-        pressDuration = 0;
-        f = 0;
-        isThrowing = false;
     }
 
     // Update the camera's position
