@@ -386,7 +386,6 @@ void Realtime::rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float
     glm::vec3 newLook = Ymat * Xmat * glm::vec3(lookVector);
     glm::vec3 newUp = Ymat * Xmat * glm::vec3(up);
     lookVector = newLook;
-    up = newUp;
 }
 
 
@@ -405,11 +404,10 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
         glm::vec3 look = glm::vec3(camera.look);
         glm::vec3 up = glm::vec3(camera.up);
 
-        rotateCameraRodrigues(look, up, float(deltaX), float(deltaY));
+        rotateCameraRodrigues(look, up, float(-0.5f * deltaX), float(-0.5f * deltaY));
 
         // Update the camera's look and up vectors
         camera.look = glm::normalize(glm::vec4(look, 0.0f));
-        camera.up = glm::normalize(glm::vec4(up, 0.0f));
 
         update(); // asks for a PaintGL() call to occur
     }
@@ -428,39 +426,31 @@ void Realtime::timerEvent(QTimerEvent *event) {
 
     // Access the camera's position and look vector
     SceneCameraData& camera = renderData.cameraData;
-    glm::vec3 position = glm::vec3(camera.pos);
-    glm::vec3 look = glm::normalize(glm::vec3(camera.look));
-    glm::vec3 up = glm::normalize(glm::vec3(camera.up));
 
-
-    // Check for movement keys
-    if (m_keyMap[Qt::Key_W]) {
-        // Move forward in the look direction
-        position += look * movementSpeed * deltaTime;
+    glm::vec3 directionVector = {0, 0, 0};
+    float deltaPos = deltaTime * 5.0f;
+    if(m_keyMap[Qt::Key_W]) {
+        directionVector += glm::vec3(camera.look);
     }
-    if (m_keyMap[Qt::Key_S]) {
-        // Move forward in the look direction
-        position -= look * movementSpeed * deltaTime;
+    if(m_keyMap[Qt::Key_S]) {
+        directionVector -= glm::vec3(camera.look);
     }
-    if (m_keyMap[Qt::Key_A]) {
-        // Move forward in the look direction
-        position -= glm::normalize(glm::cross(look,up) )* movementSpeed * deltaTime;
+    if(m_keyMap[Qt::Key_A]) {
+        directionVector -= glm::cross(glm::vec3(camera.look), glm::vec3(camera.up));
     }
-    if (m_keyMap[Qt::Key_D]) {
-        // Move forward in the look direction
-        position += glm::normalize(glm::cross(look,up) )* movementSpeed * deltaTime;
+    if(m_keyMap[Qt::Key_D]) {
+        directionVector += glm::cross(glm::vec3(camera.look), glm::vec3(camera.up));
     }
-    if (m_keyMap[Qt::Key_Space]) {
-        // Move forward in the look direction
-        position += glm::vec3{0,1,0} * movementSpeed * deltaTime;
+    if(m_keyMap[Qt::Key_Space]) {
+        directionVector += glm::vec3{0, 1, 0};
     }
-    if (m_keyMap[Qt::Key_Control]) {
-        // Move forward in the look direction
-        position -= glm::vec3{0,1,0} * movementSpeed * deltaTime;
+    if(m_keyMap[Qt::Key_Control]) {
+        directionVector += glm::vec3{0, -1, 0};
     }
-
-    // Update the camera's position
-    camera.pos = glm::vec4(position, 1.0f);
+    if (glm::length(directionVector) > 0.0f) {
+        directionVector = glm::normalize(directionVector);
+    }
+    camera.pos = camera.pos + glm::vec4(directionVector * deltaPos, 0);
 
     update(); // asks for a PaintGL() call to occur
 }
