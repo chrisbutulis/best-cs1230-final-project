@@ -12,13 +12,16 @@ glm::vec3 FishingLine::getlastElement(){
     return glm::vec3(glm::vec4(lastSegment.start,0));
 }
 
-void FishingLine::setLine(const glm::vec3& start, const glm::vec3& end, bool bindStart) {
+void FishingLine::setLine(const glm::vec3& start, const glm::vec3& end, bool bindStart, float acceleration) {
     glm::vec3 nextPeiceToReach = end; // Start from the start position, not the end
     // Loop through each segment and update the start and end positions
     if (!bindStart){
         for (int i = 0; i < m_segments; ++i) {
             // Calculate the direction for this segment
-            glm::vec3 unitDir = glm::normalize(nextPeiceToReach-m_segmentsData[i].end + glm::vec3{0,0.05,0});
+
+            glm::vec3 unitDir = glm::normalize(nextPeiceToReach-m_segmentsData[i].end + glm::vec3{0,0.05,0} + m_segmentsData[i].velocity);
+
+            // m_segmentsData[i].velocity = unitDir*acceleration*0.05f;
 
             // Calculate the start and end of this segment
             glm::vec3 segmentStart = nextPeiceToReach;
@@ -56,7 +59,7 @@ void FishingLine::setLine(const glm::vec3& start, const glm::vec3& end, bool bin
     // Loop through each segment and update the start and end positions
     for (int i = m_segments-1; i >=0; --i) {
         // Calculate the direction for this segment
-        glm::vec3 unitDir = glm::normalize(nextPeiceToReach-m_segmentsData[i].start+ glm::vec3{0,0.05,0});
+        glm::vec3 unitDir = glm::normalize(nextPeiceToReach-m_segmentsData[i].start+ glm::vec3{0,0.05,0}+ m_segmentsData[i].velocity);
 
         // Calculate the start and end of this segment
         glm::vec3 segmentEnd = nextPeiceToReach;

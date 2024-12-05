@@ -49,7 +49,7 @@ void FishingRod::setVAOandDataSize(GLuint vao, int dataSize){
 
 void FishingRod::setLineEnd(const glm::vec3& end) {
     glm::vec3 tipWorldPosition = glm::vec3(ctm * glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-    m_line.setLine(tipWorldPosition, end,true);
+    // m_line.setLine(tipWorldPosition, end,true, );
 }
 glm::vec3 vecToThrow;
 glm::vec3 vecEndrod;
@@ -62,7 +62,7 @@ void FishingRod::drawFishingRodBack(float pressDuration,glm::vec3 right) {
 
     // Update the line position
     glm::vec3 tipWorldPosition = glm::vec3(ctm * glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-    m_line.setLine(tipWorldPosition, glm::vec3{0, 0, 0}, true);
+    m_line.setLine(tipWorldPosition, glm::vec3{0, 0, 0}, true, pressDuration);
 }
 
 void FishingRod::drawFishingRodForward(float deltaTime, glm::vec3 right,glm::vec3  intersect) {
@@ -73,12 +73,12 @@ void FishingRod::drawFishingRodForward(float deltaTime, glm::vec3 right,glm::vec
     } else {
         // Line continues forward
         glm::vec3 tipWorldPosition = glm::vec3(ctm * glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-        m_line.setLine(tipWorldPosition, intersect*deltaTime/30.f + vecEndrod*(1-deltaTime/30.f), false);
+        m_line.setLine(tipWorldPosition, intersect*deltaTime/30.f + vecEndrod*(1-deltaTime/30.f), false,deltaTime);
         return;
     }
 
     glm::vec3 tipWorldPosition = glm::vec3(ctm * glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
-    m_line.setLine(tipWorldPosition, glm::vec3{0, 0, 0}, true);
+    m_line.setLine(tipWorldPosition, glm::vec3{0, 0, 0}, true,deltaTime);
     vecEndrod = m_line.getlastElement();
 }
 void FishingRod::render(GLuint shader, const SceneGlobalData& globalData) {

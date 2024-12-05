@@ -195,6 +195,9 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
+    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
+    sceneChanged();
+    settingsChanged();
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
