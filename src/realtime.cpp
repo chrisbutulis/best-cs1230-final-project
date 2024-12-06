@@ -10,8 +10,8 @@
 #include <QKeyEvent>
 #include <iostream>
 #include "settings.h"
-#include "shapes/cone.h"
-#include "shapes/cylinder.h"
+#include "shapes/Cone.h"
+#include "shapes/Cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
 
@@ -205,7 +205,7 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
-    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
+    settings.sceneFilePath = "/home/dhu34/graphics/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
     sceneChanged();
     settingsChanged();
 }

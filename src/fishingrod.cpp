@@ -1,4 +1,4 @@
-#include "FishingRod.h"
+#include "fishingrod.h"
 
 FishingRod::FishingRod(float length, float radius)
     : length(length), radius(radius), basePosition(glm::vec3(0.0f)), ctm(glm::mat4(1.0f)),m_line(30,0.05,5) {

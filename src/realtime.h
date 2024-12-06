@@ -14,7 +14,7 @@
 #include <QTime>
 #include <QTimer>
 #include "utils/sceneparser.h"
-#include "FishingRod.h"
+#include "fishingrod.h"
 
 class Realtime : public QOpenGLWidget
 {
