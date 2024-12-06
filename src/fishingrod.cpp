@@ -1,7 +1,7 @@
 #include "FishingRod.h"
 
 FishingRod::FishingRod(float length, float radius)
-    : length(length), radius(radius), basePosition(glm::vec3(0.0f)), ctm(glm::mat4(1.0f)),m_line(10,0.1,5) {
+    : length(length), radius(radius), basePosition(glm::vec3(0.0f)), ctm(glm::mat4(1.0f)),m_line(30,0.05,5) {
     ctm = glm::scale(ctm, glm::vec3(radius, length, radius));
 }
 
@@ -53,6 +53,7 @@ void FishingRod::setLineEnd(const glm::vec3& end) {
 }
 glm::vec3 vecToThrow;
 glm::vec3 vecEndrod;
+float forwardAngle;
 
 void FishingRod::drawFishingRodBack(float pressDuration,glm::vec3 right) {
     // Calculate backward rotation based on pressDuration (max 45 degrees)
@@ -65,18 +66,31 @@ void FishingRod::drawFishingRodBack(float pressDuration,glm::vec3 right) {
     m_line.setLine(tipWorldPosition, glm::vec3{0, 0, 0}, true, pressDuration);
 }
 
+void FishingRod::retraveLine(glm::vec3 right) {
+    // Calculate backward rotation based on pressDuration (max 45 degrees)
+    if (forwardAngle != 0){
+        float maxAngle = glm::radians(45.0f);
+        float rotationAngle = forwardAngle -=forwardAngle*0.05;
+        setRotation(right, rotationAngle);
+
+        // Update the line position
+        glm::vec3 tipWorldPosition = glm::vec3(ctm * glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
+        m_line.setLine(tipWorldPosition, glm::vec3{0, 0, 0}, true, 0);
+    }
+}
+
 void FishingRod::drawFishingRodForward(float deltaTime, glm::vec3 right,glm::vec3  intersect) {
     if (deltaTime < 5.f) {
         // Smoothly rotate forward based on time
-        float forwardAngle = glm::radians(45.0f) * (2.5f - deltaTime) / 2.5f;
-        setRotation(right, forwardAngle);
+        forwardAngle = glm::radians(45.0f) * (2.5f - deltaTime) / 2.5f;
     } else {
         // Line continues forward
+        setRotation(right, forwardAngle);
         glm::vec3 tipWorldPosition = glm::vec3(ctm * glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
         m_line.setLine(tipWorldPosition, intersect*deltaTime/30.f + vecEndrod*(1-deltaTime/30.f), false,deltaTime);
         return;
     }
-
+    setRotation(right, forwardAngle);
     glm::vec3 tipWorldPosition = glm::vec3(ctm * glm::vec4(0.0f, 0.5f, 0.0f, 1.0f));
     m_line.setLine(tipWorldPosition, glm::vec3{0, 0, 0}, true,deltaTime);
     vecEndrod = m_line.getlastElement();
@@ -84,9 +98,10 @@ void FishingRod::drawFishingRodForward(float deltaTime, glm::vec3 right,glm::vec
 void FishingRod::render(GLuint shader, const SceneGlobalData& globalData) {
 
     glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, &ctm[0][0]);
-    glm::vec4 cAmbient = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);   // Arbitrary ambient color
-    glm::vec4 cDiffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);   // Arbitrary diffuse color
-    glm::vec4 cSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);  // Arbitrary specular color
+    glm::vec4 cAmbient = glm::vec4(0.4f, 0.25f, 0.1f, 1.0f);   // Warm brown ambient color
+    glm::vec4 cDiffuse = glm::vec4(0.6f, 0.3f, 0.15f, 1.0f);   // Richer brown diffuse color
+    glm::vec4 cSpecular = glm::vec4(0.3f, 0.2f, 0.1f, 1.0f);   // Subtle brownish specular color
+
 
     glUniform4fv(glGetUniformLocation(shader, "shapeColor"), 1, glm::value_ptr(cAmbient * globalData.ka));
     glUniform4fv(glGetUniformLocation(shader, "shapeDiffuse"), 1, glm::value_ptr(cDiffuse * globalData.kd));

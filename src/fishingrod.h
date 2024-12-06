@@ -21,6 +21,7 @@ public:
     void drawFishingRodBack(float pressDuration, glm::vec3 right);
     void updatePosition(const glm::vec3& cameraPos, const glm::vec3& cameraDirection, const glm::mat4& viewMatrix);
     bool collition(glm::vec3 pos);
+    void retraveLine(glm::vec3 right);
 private:
     GLuint m_vao;
     int m_dataSize;
