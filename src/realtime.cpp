@@ -128,83 +128,6 @@ void makeFBO(){
     glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
 
 }
-std::vector<float> Realtime::getModelData() {
-    std::cout<< "GETTING MODEL DATA" << std::endl;
-    // Load the model using your terrain loader
-    auto model = terrain::loadModel("../../src/terrain/models/tall_coral.glb");
-    std::vector<float> interleavedData; // Flattened data: [pos.x, pos.y, pos.z, norm.x, norm.y, norm.z, ...]
-
-    for (const auto& mesh : model.meshes) {
-        for (const auto& primitive : mesh.primitives) {
-            // Extract POSITION and NORMAL attributes
-            auto posIt = primitive.attributes.find("POSITION");
-            auto normIt = primitive.attributes.find("NORMAL");
-
-            if (posIt == primitive.attributes.end() || normIt == primitive.attributes.end()) {
-                std::cerr << "Missing POSITION or NORMAL attributes in the mesh." << std::endl;
-                continue;
-            }
-
-            // Access POSITION data
-            const tinygltf::Accessor& posAccessor = model.accessors[posIt->second];
-            const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
-            const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
-            const float* posData = reinterpret_cast<const float*>(
-                &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]);
-
-            // Access NORMAL data
-            const tinygltf::Accessor& normAccessor = model.accessors[normIt->second];
-            const tinygltf::BufferView& normBufferView = model.bufferViews[normAccessor.bufferView];
-            const tinygltf::Buffer& normBuffer = model.buffers[normBufferView.buffer];
-            const float* normData = reinterpret_cast<const float*>(
-                &normBuffer.data[normBufferView.byteOffset + normAccessor.byteOffset]);
-
-            // Ensure both attributes have the same count
-            if (posAccessor.count != normAccessor.count) {
-                std::cerr << "POSITION and NORMAL attribute counts do not match." << std::endl;
-                continue;
-            }
-
-            // Interleave position and normal data
-            for (size_t i = 0; i < posAccessor.count; i++) {
-                // Position
-                interleavedData.push_back(posData[i * 3 + 0]); // x
-                interleavedData.push_back(posData[i * 3 + 1]); // y
-                interleavedData.push_back(posData[i * 3 + 2]); // z
-
-                // Normal
-                interleavedData.push_back(normData[i * 3 + 0]); // nx
-                interleavedData.push_back(normData[i * 3 + 1]); // ny
-                interleavedData.push_back(normData[i * 3 + 2]); // nz
-            }
-        }
-    }
-
-    // Generate and bind VBO
-    glGenBuffers(1, &model_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, model_vbo);
-    // Correct buffer size and upload data
-    glBufferData(GL_ARRAY_BUFFER, interleavedData.size() * sizeof(float), interleavedData.data(), GL_STATIC_DRAW);
-
-
-    // Generate and bind VAO
-    glGenVertexArrays(1, &model_vao);
-    glBindVertexArray(model_vao);
-
-    // Enable and set vertex attribute pointers
-    // Attribute 0: Position (3 floats)
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*6, 0); // Vertex attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*6, reinterpret_cast<void*>(3*sizeof(GLfloat))); // Normals attribute
-
-    // Unbind VAO and VBO to prevent accidental modifications
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    std::cout << "LOADED CORAL" << std::endl;
-    return interleavedData;
-}
-
 
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
@@ -319,9 +242,20 @@ void Realtime::paintGL() {
     // BEGIN MY CODE
     if (settings.sceneFilePath != "") {
 
-
         auto shape = renderData.shapes[0];
         auto globalData = renderData.globalData;
+
+        glm::mat4 ctm = glm::mat4(1.0f); // Start with identity matrix
+
+        // Translation: Move the coral to (0, 0, -5)
+        ctm = glm::translate(ctm, glm::vec3(0.0f, 0.0f, -5.0f));
+
+        // Rotation: Rotate 45 degrees around Y, 15 degrees around X
+        ctm = glm::rotate(ctm, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis rotation
+        ctm = glm::rotate(ctm, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis rotation
+
+        // Scaling: Uniformly scale to half size
+        ctm = glm::scale(ctm, glm::vec3(0.5f, 0.5f, 0.5f));
 
 
         glUniformMatrix4fv(glGetUniformLocation(m_shader, "modelMatrix"), 1, GL_FALSE, &shape.ctm[0][0]);
@@ -330,7 +264,7 @@ void Realtime::paintGL() {
         glUniform4fv(glGetUniformLocation(m_shader, "shapeSpecular"), 1, glm::value_ptr(shape.primitive.material.cSpecular * globalData.ks));
         glUniform1f(glGetUniformLocation(m_shader, "shininess"), shape.primitive.material.shininess);
     }
-    glBindVertexArray(model_vao);
+    glBindVertexArray(terrain_vao);
     glDrawArrays(GL_TRIANGLES, 0, coral_data.size() / 6);
     glBindVertexArray(0);
 
@@ -398,7 +332,7 @@ void Realtime::sceneChanged() {
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
     m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
-    coral_data = getModelData();
+    coral_data = terrain::getTerrainData(terrain_vbo, terrain_vao);
     update();
 }
 

@@ -42,8 +42,6 @@ private:
     void timerEvent(QTimerEvent *event) override;
     void rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float xOffset, float yOffset, float sensitivity = 0.1f);
 
-    std::vector<float> getModelData();
-
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
     QElapsedTimer m_elapsedTimer;                       // Stores timer which keeps track of actual time between frames
@@ -62,8 +60,9 @@ private:
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
 
-    GLuint model_vbo;
-    GLuint model_vao;
+    // Terrain
+    GLuint terrain_vbo;
+    GLuint terrain_vao;
 
     glm::mat4 m_view;
     RenderData renderData;
