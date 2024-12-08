@@ -14,7 +14,7 @@
 #include "shapes/cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
-#include "terrain/terrain.h"
+#include "models/model-loader.h"
 
 // ================== Project 5: Lights, Camera
 
@@ -131,7 +131,6 @@ void makeFBO(){
 
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
-
     m_timer = startTimer(1000/60);
     m_elapsedTimer.start();
     m_screen_width = size().width() * m_devicePixelRatio;
@@ -155,7 +154,7 @@ void Realtime::initializeGL() {
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
 
-
+    coral_data = modelloader::loadGLB(coral_vbo, coral_vao, "../../src/models/3d-models/tall_coral.glb");
     OpenGLHelper::bindVBOVAO(&Cone.vbo, &Cone.vao);
     OpenGLHelper::bindVBOVAO(&Cylinder.vbo, &Cylinder.vao);
     OpenGLHelper::bindVBOVAO(&Sphere.vbo, &Sphere.vao);
@@ -221,13 +220,13 @@ void Realtime::paintGL() {
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
+    m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
     glUseProgram(m_shader);
     m_fishingRod.render(m_shader,renderData.globalData);
 
     for(int j =0; j<m_fishVector.size();j++){
-        // m_fishVector[j].moveForward();
-        // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+        m_fishVector[j].moveForward();
+        m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
         m_fishVector[j].update(t);
         if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
             m_fishVector[j].changeColor();
@@ -237,38 +236,10 @@ void Realtime::paintGL() {
 
     PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     PaintGLHelper::setupLights(m_shader, renderData.lights);
-    // PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
+    PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
 
-    // BEGIN MY CODE
-    if (settings.sceneFilePath != "") {
+    modelloader::renderModel(m_shader, coral_vao, renderData, coral_data);
 
-        auto shape = renderData.shapes[0];
-        auto globalData = renderData.globalData;
-
-        glm::mat4 ctm = glm::mat4(1.0f); // Start with identity matrix
-
-        // Translation: Move the coral to (0, 0, -5)
-        ctm = glm::translate(ctm, glm::vec3(0.0f, 0.0f, -5.0f));
-
-        // Rotation: Rotate 45 degrees around Y, 15 degrees around X
-        ctm = glm::rotate(ctm, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis rotation
-        ctm = glm::rotate(ctm, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis rotation
-
-        // Scaling: Uniformly scale to half size
-        ctm = glm::scale(ctm, glm::vec3(0.5f, 0.5f, 0.5f));
-
-
-        glUniformMatrix4fv(glGetUniformLocation(m_shader, "modelMatrix"), 1, GL_FALSE, &shape.ctm[0][0]);
-        glUniform4fv(glGetUniformLocation(m_shader, "shapeColor"), 1, glm::value_ptr(shape.primitive.material.cAmbient * globalData.ka));
-        glUniform4fv(glGetUniformLocation(m_shader, "shapeDiffuse"), 1, glm::value_ptr(shape.primitive.material.cDiffuse * globalData.kd));
-        glUniform4fv(glGetUniformLocation(m_shader, "shapeSpecular"), 1, glm::value_ptr(shape.primitive.material.cSpecular * globalData.ks));
-        glUniform1f(glGetUniformLocation(m_shader, "shininess"), shape.primitive.material.shininess);
-    }
-    glBindVertexArray(terrain_vao);
-    glDrawArrays(GL_TRIANGLES, 0, coral_data.size() / 6);
-    glBindVertexArray(0);
-
-    // END MY CODE
     glUseProgram(0);
 
     SceneCameraData& camera = renderData.cameraData;
@@ -332,7 +303,6 @@ void Realtime::sceneChanged() {
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
     m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
-    coral_data = terrain::getTerrainData(terrain_vbo, terrain_vao);
     update();
 }
 

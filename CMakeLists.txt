@@ -51,8 +51,8 @@ add_executable(${PROJECT_NAME}
     src/fishingline.h src/fishingline.cpp
     src/fish.h src/fish.cpp
 
-    src/terrain/terrain.h
-    src/terrain/terrain.cpp
+    src/models/model-loader.cpp
+    src/models/model-loader.h
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
@@ -85,9 +85,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/default.vert
         resources/shaders/postP.frag
         resources/shaders/postP.vert
-        resources/shaders/lab10.frag
 
-        src/terrain/models/tall_coral.glb
+        src/models/3d-models/tall_coral.glb
 )
 
 # GLEW: this provides support for Windows (including 64-bit)

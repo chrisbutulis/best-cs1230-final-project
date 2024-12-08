@@ -51,8 +51,6 @@ private:
     glm::vec2 m_prev_mouse_pos;                         // Stores mouse position
     std::unordered_map<Qt::Key, bool> m_keyMap;         // Stores whether keys are pressed or not
 
-    std::vector<float> coral_data;
-
     // Device Correction Variables
     double m_devicePixelRatio;
     std::vector<fish> m_fishVector;
@@ -60,9 +58,10 @@ private:
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
 
-    // Terrain
-    GLuint terrain_vbo;
-    GLuint terrain_vao;
+    // Modeling
+    GLuint coral_vao;
+    GLuint coral_vbo;
+    std::vector<float> coral_data;
 
     glm::mat4 m_view;
     RenderData renderData;
