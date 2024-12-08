@@ -2,6 +2,7 @@
 #include <sstream>
 #include <vector>
 #include <stdexcept>
+#include <iostream>
 
 // Marshals a glm::mat4 into a string
 std::string marshalMat4(const glm::mat4& matrix) {
@@ -22,6 +23,10 @@ std::string marshalMat4(const glm::mat4& matrix) {
 
 // Unmarshals a string back into a glm::mat4
 glm::mat4 unmarshalMat4(const std::string& str) {
+     std::cout << str << std::endl;
+    if (str == "No other player connected."){
+        return glm::mat4(0);
+    }
     std::istringstream iss(str);
     std::vector<float> elements;
     float value;

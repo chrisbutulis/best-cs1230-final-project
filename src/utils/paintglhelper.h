@@ -4,7 +4,7 @@
 #include "realtime.h"
 class PaintGLHelper {
 public:
-    static void setupMatrices(GLuint shader, const glm::mat4& projMatrix, const SceneCameraData& cameraData);
+    static glm::mat4 setupMatrices(GLuint shader, const glm::mat4& projMatrix, const SceneCameraData& cameraData);
     static void setupLights(GLuint shader, const std::vector<SceneLightData>& lights);
     static void renderShapes(GLuint shader, const std::vector<RenderShapeData>& shapes, const SceneGlobalData& globalData);
 

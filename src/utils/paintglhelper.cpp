@@ -39,7 +39,7 @@ glm::mat4 calculateViewMatrix(const SceneCameraData &camera) {
 }
 
 
-void PaintGLHelper::setupMatrices(GLuint shader, const glm::mat4& projMatrix, const SceneCameraData& cameraData) {
+glm::mat4 PaintGLHelper::setupMatrices(GLuint shader, const glm::mat4& projMatrix, const SceneCameraData& cameraData) {
     glm::mat4 View = calculateViewMatrix(cameraData);
 
     glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_FALSE, &projMatrix[0][0]);
@@ -47,6 +47,7 @@ void PaintGLHelper::setupMatrices(GLuint shader, const glm::mat4& projMatrix, co
 
     glm::vec4 viewPosWorld = glm::inverse(View) * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glUniform4fv(glGetUniformLocation(shader, "viewPos"), 1, glm::value_ptr(viewPosWorld));
+    return View;
 }
 
 void PaintGLHelper::setupLights(GLuint shader, const std::vector<SceneLightData>& lights) {

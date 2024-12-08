@@ -3,46 +3,106 @@
 #include <cstring>     // For memset
 #include <unistd.h>    // For close()
 #include <arpa/inet.h> // For socket functions
+#include <vector>
+
+// Helper function to construct a message with header and payload
+std::vector<char> createMessage(int playerNumber, int protocolNumber, const std::string& payload) {
+    int totalLength = 12 + payload.size(); // Header size + payload size
+
+    std::vector<char> message(totalLength);
+
+    // Add length (4 bytes)
+    int* lengthPtr = reinterpret_cast<int*>(message.data());
+    *lengthPtr = htonl(totalLength);
+
+    // Add player number (4 bytes)
+    int* playerPtr = reinterpret_cast<int*>(message.data() + 4);
+    *playerPtr = htonl(playerNumber);
+
+    // Add protocol number (4 bytes)
+    int* protocolPtr = reinterpret_cast<int*>(message.data() + 8);
+    *protocolPtr = htonl(protocolNumber);
+
+    // Add payload
+    if (!payload.empty()) {
+        std::memcpy(message.data() + 12, payload.data(), payload.size());
+    }
+
+    return message;
+}
+
+// Helper function to parse the header
+void parseHeader(const char* buffer, int& length, int& playerNumber, int& protocolNumber) {
+    length = ntohl(*reinterpret_cast<const int*>(buffer));
+    playerNumber = ntohl(*reinterpret_cast<const int*>(buffer + 4));
+    protocolNumber = ntohl(*reinterpret_cast<const int*>(buffer + 8));
+}
 
 NetworkClient::NetworkClient(const std::string& serverAddress, unsigned short serverPort)
-    : serverAddress(serverAddress), serverPort(serverPort), clientSocket(-1), connected(false) {}
+    : serverAddress(serverAddress), serverPort(serverPort), clientSocket(-1), connected(false), playerNumber(0) {}
 
 NetworkClient::~NetworkClient() {
     VDisconnect();
 }
 
-bool NetworkClient::VJoin() {
-    // Create a socket
+int NetworkClient::VJoin() {
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (clientSocket == -1) {
         perror("Socket creation failed");
-        return false;
+        return 0;
     }
 
-    // Setup the server address structure
     sockaddr_in serverAddr{};
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(serverPort);
 
-    // Convert and set server address
     if (inet_pton(AF_INET, serverAddress.c_str(), &serverAddr.sin_addr) <= 0) {
         perror("Invalid address/Address not supported");
-        return false;
+        return 0;
     }
 
-    // Connect to the server
     if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
         perror("Connection to the server failed");
-        return false;
+        return 0;
     }
 
     connected = true;
     std::cout << "Connected to the server at " << serverAddress << ":" << serverPort << std::endl;
 
-    // Start the receive loop in a separate thread
+    // Send a join request (Protocol 1)
+    auto message = createMessage(0, 1, "");
+    if (send(clientSocket, message.data(), message.size(), 0) < 0) {
+        perror("Failed to send join request");
+        return 0;
+    }
+
+    // Receive the player number
+    char buffer[12];
+    memset(buffer, 0, sizeof(buffer));
+    int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+    if (bytesRead <= 0) {
+        std::cerr << "Failed to receive player number from server." << std::endl;
+        connected = false;
+        close(clientSocket);
+        clientSocket = -1;
+        return 0;
+    }
+
+    int length, protocol;
+    parseHeader(buffer, length, playerNumber, protocol);
+    if (protocol != 1 || playerNumber == 0) {
+        std::cerr << "Invalid response or error player number." << std::endl;
+        connected = false;
+        close(clientSocket);
+        clientSocket = -1;
+        return 0;
+    }
+
+    std::cout << "Assigned player number: " << playerNumber << std::endl;
+
     receiveThread = std::thread(&NetworkClient::receiveLoop, this);
-    return true;
+    return playerNumber;
 }
 
 std::string NetworkClient::VFetch() {
@@ -51,7 +111,30 @@ std::string NetworkClient::VFetch() {
         return "";
     }
 
-    return latestServerData; // Return the most recent server data
+    // Send a fetch request (Protocol 4)
+    auto message = createMessage(playerNumber, 4, "");
+    if (send(clientSocket, message.data(), message.size(), 0) < 0) {
+        perror("Failed to send fetch request");
+        return "";
+    }
+
+    // Wait for server response
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+    if (bytesRead <= 0) {
+        std::cerr << "Failed to fetch data from server." << std::endl;
+        return "";
+    }
+
+    int length, protocol, senderPlayerNumber;
+    parseHeader(buffer, length, senderPlayerNumber, protocol);
+    if (protocol != 4 || senderPlayerNumber != playerNumber) {
+        std::cerr << "Invalid fetch response." << std::endl;
+        return "";
+    }
+
+    return std::string(buffer + 12, length - 12); // Extract the payload
 }
 
 void NetworkClient::VUpdate(const std::string& data) {
@@ -60,25 +143,26 @@ void NetworkClient::VUpdate(const std::string& data) {
         return;
     }
 
-    // Send the data to the server
-    if (send(clientSocket, data.c_str(), data.size(), 0) < 0) {
-        perror("Failed to send data to the server");
+    // Send an update request (Protocol 3)
+    auto message = createMessage(playerNumber, 3, data);
+    if (send(clientSocket, message.data(), message.size(), 0) < 0) {
+        perror("Failed to send update data");
     }
 }
 
-
-
 void NetworkClient::VDisconnect() {
     if (connected) {
+        // Send a disconnect request (Protocol 2)
+        auto message = createMessage(playerNumber, 2, "");
+        send(clientSocket, message.data(), message.size(), 0);
+
         connected = false;
 
-        // Close the socket
         if (clientSocket != -1) {
             close(clientSocket);
             clientSocket = -1;
         }
 
-        // Join the receive thread
         if (receiveThread.joinable()) {
             receiveThread.join();
         }
@@ -90,19 +174,20 @@ void NetworkClient::VDisconnect() {
 void NetworkClient::receiveLoop() {
     char buffer[1024];
 
-    while (connected) {
-        // Clear the buffer
-        memset(buffer, 0, sizeof(buffer));
+    // while (connected) {
+    //     memset(buffer, 0, sizeof(buffer));
 
-        // Receive data from the server
-        int bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-        if (bytesRead <= 0) {
-            std::cerr << "Server connection lost or closed." << std::endl;
-            connected = false;
-            break;
-        }
+    //     int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+    //     if (bytesRead <= 0) {
+    //         std::cerr << "Server connection lost or closed." << std::endl;
+    //         connected = false;
+    //         break;
+    //     }
 
-        // Store the latest server data
-        latestServerData = std::string(buffer, bytesRead);
-    }
+    //     int length, protocol, senderPlayerNumber;
+    //     parseHeader(buffer, length, senderPlayerNumber, protocol);
+
+    //     std::cout << "Received Protocol " << protocol << " from Player " << senderPlayerNumber << std::endl;
+    //     latestServerData = std::string(buffer + 12, length - 12); // Update the latest data
+    // }
 }

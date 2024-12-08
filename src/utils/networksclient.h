@@ -10,7 +10,7 @@ public:
     NetworkClient(const std::string& serverAddress, unsigned short serverPort);
     ~NetworkClient();
 
-    bool VJoin();                        // Join the server
+    int VJoin();                // Join the server
     std::string VFetch();                // Fetch the most current information
     void VUpdate(const std::string& data); // Send the player's position
     void VDisconnect();                  // Disconnect from the server
@@ -24,6 +24,7 @@ private:
     std::thread receiveThread;           // Thread for handling incoming data
     std::atomic<bool> connected;         // Connection status
     std::string latestServerData;        // Stores the most recent data from the server
+    int playerNumber;
 };
 
 #endif
