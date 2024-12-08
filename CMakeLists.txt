@@ -50,9 +50,10 @@ add_executable(${PROJECT_NAME}
     src/fishingrod.h src/fishingrod.cpp
     src/fishingline.h src/fishingline.cpp
     src/fish.h src/fish.cpp
-
     src/models/model-loader.cpp
     src/models/model-loader.h
+    src/utils/networksclient.h src/utils/networksclient.cpp
+    src/utils/utils.h src/utils/utils.cpp
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`

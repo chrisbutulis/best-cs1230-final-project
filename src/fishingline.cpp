@@ -12,13 +12,15 @@ glm::vec3 FishingLine::getlastElement(){
     return glm::vec3(glm::vec4(lastSegment.start,0));
 }
 
-void FishingLine::setLine(const glm::vec3& start, const glm::vec3& end, bool bindStart) {
+void FishingLine::setLine(const glm::vec3& start, const glm::vec3& end, bool bindStart, float acceleration) {
     glm::vec3 nextPeiceToReach = end; // Start from the start position, not the end
     // Loop through each segment and update the start and end positions
     if (!bindStart){
         for (int i = 0; i < m_segments; ++i) {
             // Calculate the direction for this segment
+
             glm::vec3 unitDir = glm::normalize(nextPeiceToReach-m_segmentsData[i].end + glm::vec3{0,0.05,0});
+
 
             // Calculate the start and end of this segment
             glm::vec3 segmentStart = nextPeiceToReach;
@@ -96,9 +98,10 @@ void FishingLine::render(GLuint shader, const SceneGlobalData& globalData, GLuin
     for (const auto& segment : m_segmentsData) {
         // Set per-segment uniforms
         glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, &segment.ctm[0][0]);
-        glm::vec4 cAmbient = glm::vec4(1.f, 0.2f, 0.2f, 1.0f);   // Arbitrary ambient color
-        glm::vec4 cDiffuse = glm::vec4(1.f, 0.8f, 0.8f, 1.0f);   // Arbitrary diffuse color
-        glm::vec4 cSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);  // Arbitrary specular color
+        glm::vec4 cAmbient = glm::vec4(0.9f, 0.9f, 0.9f, 1.0f);   // Subtle white ambient color
+        glm::vec4 cDiffuse = glm::vec4(0.95f, 0.95f, 0.95f, 1.0f); // Bright white diffuse color for soft lighting
+        glm::vec4 cSpecular = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);  // Low specular color to make it less shiny
+
 
         glUniform4fv(glGetUniformLocation(shader, "shapeColor"), 1, glm::value_ptr(cAmbient * globalData.ka));
         glUniform4fv(glGetUniformLocation(shader, "shapeDiffuse"), 1, glm::value_ptr(cDiffuse * globalData.kd));

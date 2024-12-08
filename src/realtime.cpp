@@ -15,6 +15,8 @@
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
 #include "models/model-loader.h"
+#include "utils/networksclient.h"
+#include "utils/utils.h"
 
 // ================== Project 5: Lights, Camera
 
@@ -129,6 +131,8 @@ void makeFBO(){
 
 }
 
+NetworkClient client("127.0.0.1", 12345);
+
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
     m_timer = startTimer(1000/60);
@@ -187,6 +191,16 @@ void Realtime::initializeGL() {
 
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+    // Set the background color to a deep underwater blue
+    glClearColor(0.0f, 0.4f, 0.7f, 1.0f);
+
+    // Optional: Enable and configure fog for an underwater effect
+    glEnable(GL_FOG);
+    glFogi(GL_FOG_MODE, GL_EXP2); // Use exponential fog
+    GLfloat fogColor[4] = {0.0f, 0.4f, 0.7f, 1.0f}; // Match background color
+    glFogfv(GL_FOG_COLOR, fogColor);
+    glFogf(GL_FOG_DENSITY, 0.05f); // Adjust density for desired effect
+    glHint(GL_FOG_HINT, GL_NICEST); // Best quality fog
 
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -194,6 +208,14 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
+    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
+    sceneChanged();
+    settingsChanged();
+    int player = client.VJoin();
+    if (player<1) {
+        std::cerr << "Failed to connect to the server." << std::endl;
+    }
+    std::cout << "Player "<< player << std::endl;
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -213,6 +235,7 @@ float pressDuration = 0.0f;
 bool isThrowing = false;
 bool isRetracting = false;
 float t = 0;
+float cooldownTime = 0.0f;
 
 void Realtime::paintGL() {
 
@@ -225,16 +248,18 @@ void Realtime::paintGL() {
     m_fishingRod.render(m_shader,renderData.globalData);
 
     for(int j =0; j<m_fishVector.size();j++){
-        m_fishVector[j].moveForward();
-        m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
-        m_fishVector[j].update(t);
+        // m_fishVector[j].moveForward();
+        // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+        // m_fishVector[j].update(t);
+        m_fishVector[j].ctm = unmarshalMat4(client.VFetch());
+      
         if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
             m_fishVector[j].changeColor();
         }
         m_fishVector[j].render(m_shader,renderData.globalData);
     }
-
-    PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
+    glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
+    // client.VUpdate(marshalMat4(viewMatrix));
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
 
@@ -246,6 +271,38 @@ void Realtime::paintGL() {
     glm::vec3 position = glm::vec3(camera.pos);
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
+
+    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
+
+    if (m_mouseDown && cooldownTime<0.01) {
+        isRetracting = false;
+        pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
+        m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
+    } else if (pressDuration > 0) {
+        isThrowing = true;
+        cooldownTime = 3.0f * (1.0f - 0.5f*pressDuration);
+        // pressDuration = 0.0f; // Reset press duration
+    }
+
+    if (isThrowing) {
+        m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
+        f += (glm::pow(2.f,1.5f*1.5f*pressDuration*pressDuration)/5.f-0.19f);
+        if (f > 30.f*pressDuration*pressDuration) {
+
+            isThrowing = false;
+            f = 0.0f;
+            isRetracting = true;
+            pressDuration = 0.0f;
+        }
+    }
+
+    if (isRetracting){
+        m_fishingRod.retraveLine(glm::normalize(glm::cross(look,up)));
+    }
+
+    if (cooldownTime > 0.0f) {
+        cooldownTime -= 0.02f;
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
@@ -391,21 +448,25 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
 }
 
 
+float verticalVelocity = 0.0f;         // Vertical velocity (m/s)
+const float gravity = -2.f;          // Gravity acceleration (m/s^2)
+const float jumpVelocity = 2.0f;      // Initial jump velocity (m/s)
 
 void Realtime::timerEvent(QTimerEvent *event) {
     int elapsedms   = m_elapsedTimer.elapsed();
-    float deltaTime = elapsedms * 0.001f;
+    float deltaTime = elapsedms * 0.001f; // Time step in seconds
     m_elapsedTimer.restart();
 
-    // Use deltaTime and m_keyMap here to move around
-
-    const float movementSpeed = 5.0f; // Units per second
+    // Movement speed
+    const float movementSpeed = 3.0f; // Units per second
 
     // Access the camera's position and look vector
     SceneCameraData& camera = renderData.cameraData;
 
     glm::vec3 directionVector = {0, 0, 0};
-    float deltaPos = deltaTime * 5.0f;
+    float deltaPos = deltaTime * movementSpeed;
+
+    // Handle horizontal movement
     if(m_keyMap[Qt::Key_W]) {
         directionVector += glm::vec3(camera.look);
     }
@@ -418,80 +479,42 @@ void Realtime::timerEvent(QTimerEvent *event) {
     if(m_keyMap[Qt::Key_D]) {
         directionVector += glm::cross(glm::vec3(camera.look), glm::vec3(camera.up));
     }
-    if(m_keyMap[Qt::Key_Space]) {
-        directionVector += glm::vec3{0, 1, 0};
-    }
-    if(m_keyMap[Qt::Key_Control]) {
-        directionVector += glm::vec3{0, -1, 0};
-    }
+
+    // Normalize direction vector
     if (glm::length(directionVector) > 0.0f) {
         directionVector = glm::normalize(directionVector);
     }
-    camera.pos = camera.pos + glm::vec4(directionVector * deltaPos, 0);
 
-    update(); // asks for a PaintGL() call to occur
-}
+    // Horizontal position update
+    glm::vec3 newPos = glm::vec3(camera.pos) + directionVector * deltaPos;
 
-// DO NOT EDIT
-void Realtime::saveViewportImage(std::string filePath) {
-    // Make sure we have the right context and everything has been drawn
-    makeCurrent();
-
-    int fixedWidth = 1024;
-    int fixedHeight = 768;
-
-    // Create Frame Buffer
-    GLuint fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    // Create a color attachment texture
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, fixedWidth, fixedHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-
-    // Optional: Create a depth buffer if your rendering uses depth testing
-    GLuint rbo;
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, fixedWidth, fixedHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "Error: Framebuffer is not complete!" << std::endl;
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        return;
+    // Handle jumping
+    if (m_keyMap[Qt::Key_Space]) {
+        verticalVelocity = jumpVelocity; // Apply initial jump velocity
     }
 
-    // Render to the FBO
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glViewport(0, 0, fixedWidth, fixedHeight);
+    // Apply gravity to vertical velocity
+    verticalVelocity += gravity * deltaTime;
 
-    // Clear and render your scene here
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    paintGL();
+    // Update vertical position
+    newPos.y += verticalVelocity * deltaTime;
 
-    // Read pixels from framebuffer
-    std::vector<unsigned char> pixels(fixedWidth * fixedHeight * 3);
-    glReadPixels(0, 0, fixedWidth, fixedHeight, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-
-    // Unbind the framebuffer to return to default rendering to the screen
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Convert to QImage
-    QImage image(pixels.data(), fixedWidth, fixedHeight, QImage::Format_RGB888);
-    QImage flippedImage = image.mirrored(); // Flip the image vertically
-
-    // Save to file using Qt
-    QString qFilePath = QString::fromStdString(filePath);
-    if (!flippedImage.save(qFilePath)) {
-        std::cerr << "Failed to save image to " << filePath << std::endl;
+    // Check for ground collision
+    if (newPos.y <= 1.0f) { // Assuming ground level is at y = 1.0
+        newPos.y = 1.0f;    // Reset to ground level
+        verticalVelocity = 0.0f; // Stop vertical motion
     }
 
-    // Clean up
-    glDeleteTextures(1, &texture);
-    glDeleteRenderbuffers(1, &rbo);
-    glDeleteFramebuffers(1, &fbo);
+    // Clamp position to stay within the 10x10x10 cube
+    const float minBound = -10.0f;
+    const float maxBound = 10.0f;
+
+    newPos.x = glm::clamp(newPos.x, minBound, maxBound);
+    newPos.y = glm::clamp(newPos.y, minBound, maxBound);
+    newPos.z = glm::clamp(newPos.z, minBound, maxBound);
+
+    // Update camera position
+    camera.pos = glm::vec4(newPos, 1.0f);
+    update(); // Requests a PaintGL() call to occur
 }
+
