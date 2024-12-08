@@ -14,6 +14,8 @@
 #include "shapes/cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
+#include "utils/networksclient.h"
+#include "utils/utils.h"
 
 // ================== Project 5: Lights, Camera
 
@@ -129,7 +131,7 @@ void makeFBO(){
 }
 
 
-
+NetworkClient client("127.0.0.1", 12345);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -208,6 +210,9 @@ void Realtime::initializeGL() {
     settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
     sceneChanged();
     settingsChanged();
+    if (!client.VJoin()) {
+        std::cerr << "Failed to connect to the server." << std::endl;
+    }
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -248,6 +253,7 @@ void Realtime::paintGL() {
         m_fishVector[j].render(m_shader,renderData.globalData);
     }
     PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
+    client.VUpdate(marshalMat4(m_view));
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
     glUseProgram(0);
@@ -260,11 +266,9 @@ void Realtime::paintGL() {
 
     if (m_mouseDown && cooldownTime<0.01) {
         isRetracting = false;
-        // Increase the press duration while the mouse is held down
         pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
         m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
     } else if (pressDuration > 0) {
-        // Start the forward throw on mouse release
         isThrowing = true;
         cooldownTime = 3.0f * (1.0f - 0.5f*pressDuration);
         // pressDuration = 0.0f; // Reset press duration
@@ -272,9 +276,9 @@ void Realtime::paintGL() {
 
     if (isThrowing) {
         m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
-        f += (glm::pow(2.f,1.5f*1.5f*pressDuration*pressDuration)/5.f-0.19f); // Progress forward motion
+        f += (glm::pow(2.f,1.5f*1.5f*pressDuration*pressDuration)/5.f-0.19f);
         if (f > 30.f*pressDuration*pressDuration) {
-            // End the throw after the forward motion is complete
+
             isThrowing = false;
             f = 0.0f;
             isRetracting = true;
@@ -287,7 +291,7 @@ void Realtime::paintGL() {
     }
 
     if (cooldownTime > 0.0f) {
-        cooldownTime -= 0.02f; // Decrease cooldown timer (assuming ~60 FPS, adjust accordingly)
+        cooldownTime -= 0.02f;
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
@@ -472,7 +476,7 @@ void Realtime::timerEvent(QTimerEvent *event) {
     }
 
     // Horizontal position update
-    camera.pos += glm::vec4(directionVector * deltaPos, 0);
+    glm::vec3 newPos = glm::vec3(camera.pos) + directionVector * deltaPos;
 
     // Handle jumping
     if (m_keyMap[Qt::Key_Space]) {
@@ -483,13 +487,24 @@ void Realtime::timerEvent(QTimerEvent *event) {
     verticalVelocity += gravity * deltaTime;
 
     // Update vertical position
-    camera.pos.y += verticalVelocity * deltaTime;
+    newPos.y += verticalVelocity * deltaTime;
 
     // Check for ground collision
-    if (camera.pos.y <= 1.0f) { // Assuming ground level is at y = 1.0
-        camera.pos.y = 1.0f;    // Reset to ground level
+    if (newPos.y <= 1.0f) { // Assuming ground level is at y = 1.0
+        newPos.y = 1.0f;    // Reset to ground level
         verticalVelocity = 0.0f; // Stop vertical motion
     }
 
+    // Clamp position to stay within the 10x10x10 cube
+    const float minBound = -10.0f;
+    const float maxBound = 10.0f;
+
+    newPos.x = glm::clamp(newPos.x, minBound, maxBound);
+    newPos.y = glm::clamp(newPos.y, minBound, maxBound);
+    newPos.z = glm::clamp(newPos.z, minBound, maxBound);
+
+    // Update camera position
+    camera.pos = glm::vec4(newPos, 1.0f);
     update(); // Requests a PaintGL() call to occur
 }
+

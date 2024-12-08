@@ -60,7 +60,7 @@ void fish::resetDirectionCooldown() {
  glm::vec3 currentWander = glm::vec3(0.0f); // Store the current random wander vector
 float wanderInterval = 5.0f; // Time interval between wander updates
  void fish::update(float deltaTime) {
-     timeSinceLastWander += deltaTime;
+     timeSinceLastWander += 0.1;
 
      if (timeSinceLastWander >= wanderInterval) {
          float wanderStrength = 0.05f; // Reduced wander strength for smoother motion
