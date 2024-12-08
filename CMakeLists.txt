@@ -79,6 +79,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/default.vert
         resources/shaders/postP.frag
         resources/shaders/postP.vert
+        resources/shaders/particle.frag
+        resources/shaders/particle.vert
 )
 
 # GLEW: this provides support for Windows (including 64-bit)
