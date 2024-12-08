@@ -14,6 +14,7 @@
 #include "shapes/cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
+#include "models/model-loader.h"
 #include "utils/networksclient.h"
 #include "utils/utils.h"
 
@@ -130,11 +131,10 @@ void makeFBO(){
 
 }
 
-
 NetworkClient client("127.0.0.1", 12345);
+
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
-
     m_timer = startTimer(1000/60);
     m_elapsedTimer.start();
     m_screen_width = size().width() * m_devicePixelRatio;
@@ -158,11 +158,12 @@ void Realtime::initializeGL() {
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
 
-
+    coral_data = modelloader::loadGLB(coral_vbo, coral_vao, "../../src/models/3d-models/tall_coral.glb");
     OpenGLHelper::bindVBOVAO(&Cone.vbo, &Cone.vao);
     OpenGLHelper::bindVBOVAO(&Cylinder.vbo, &Cylinder.vao);
     OpenGLHelper::bindVBOVAO(&Sphere.vbo, &Sphere.vao);
     OpenGLHelper::bindVBOVAO(&Cube.vbo, &Cube.vao);
+
     glUseProgram(m_texture_shader);
     glUniform1i(glGetUniformLocation(m_texture_shader, "s2D"), 0);
 
@@ -237,11 +238,12 @@ float t = 0;
 float cooldownTime = 0.0f;
 
 void Realtime::paintGL() {
+
     t+=0.01;
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
+    m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
     glUseProgram(m_shader);
     m_fishingRod.render(m_shader,renderData.globalData);
 
@@ -250,6 +252,7 @@ void Realtime::paintGL() {
         // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
         // m_fishVector[j].update(t);
         m_fishVector[j].ctm = unmarshalMat4(client.VFetch());
+      
         if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
             m_fishVector[j].changeColor();
         }
@@ -259,12 +262,16 @@ void Realtime::paintGL() {
     // client.VUpdate(marshalMat4(viewMatrix));
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
+
+    modelloader::renderModel(m_shader, coral_vao, renderData, coral_data);
+
     glUseProgram(0);
 
     SceneCameraData& camera = renderData.cameraData;
     glm::vec3 position = glm::vec3(camera.pos);
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
+
     m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
 
     if (m_mouseDown && cooldownTime<0.01) {

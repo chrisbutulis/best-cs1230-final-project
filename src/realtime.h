@@ -57,6 +57,12 @@ private:
     GLuint m_shader; // Stores id of shader program
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
+
+    // Modeling
+    GLuint coral_vao;
+    GLuint coral_vbo;
+    std::vector<float> coral_data;
+
     glm::mat4 m_view;
     RenderData renderData;
 };
