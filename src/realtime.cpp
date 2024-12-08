@@ -14,6 +14,7 @@
 #include "shapes/cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
+#include "terrain/terrain.h"
 
 // ================== Project 5: Lights, Camera
 
@@ -127,7 +128,82 @@ void makeFBO(){
     glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
 
 }
+std::vector<float> Realtime::getModelData() {
+    std::cout<< "GETTING MODEL DATA" << std::endl;
+    // Load the model using your terrain loader
+    auto model = terrain::loadModel("../../src/terrain/models/tall_coral.glb");
+    std::vector<float> interleavedData; // Flattened data: [pos.x, pos.y, pos.z, norm.x, norm.y, norm.z, ...]
 
+    for (const auto& mesh : model.meshes) {
+        for (const auto& primitive : mesh.primitives) {
+            // Extract POSITION and NORMAL attributes
+            auto posIt = primitive.attributes.find("POSITION");
+            auto normIt = primitive.attributes.find("NORMAL");
+
+            if (posIt == primitive.attributes.end() || normIt == primitive.attributes.end()) {
+                std::cerr << "Missing POSITION or NORMAL attributes in the mesh." << std::endl;
+                continue;
+            }
+
+            // Access POSITION data
+            const tinygltf::Accessor& posAccessor = model.accessors[posIt->second];
+            const tinygltf::BufferView& posBufferView = model.bufferViews[posAccessor.bufferView];
+            const tinygltf::Buffer& posBuffer = model.buffers[posBufferView.buffer];
+            const float* posData = reinterpret_cast<const float*>(
+                &posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]);
+
+            // Access NORMAL data
+            const tinygltf::Accessor& normAccessor = model.accessors[normIt->second];
+            const tinygltf::BufferView& normBufferView = model.bufferViews[normAccessor.bufferView];
+            const tinygltf::Buffer& normBuffer = model.buffers[normBufferView.buffer];
+            const float* normData = reinterpret_cast<const float*>(
+                &normBuffer.data[normBufferView.byteOffset + normAccessor.byteOffset]);
+
+            // Ensure both attributes have the same count
+            if (posAccessor.count != normAccessor.count) {
+                std::cerr << "POSITION and NORMAL attribute counts do not match." << std::endl;
+                continue;
+            }
+
+            // Interleave position and normal data
+            for (size_t i = 0; i < posAccessor.count; i++) {
+                // Position
+                interleavedData.push_back(posData[i * 3 + 0]); // x
+                interleavedData.push_back(posData[i * 3 + 1]); // y
+                interleavedData.push_back(posData[i * 3 + 2]); // z
+
+                // Normal
+                interleavedData.push_back(normData[i * 3 + 0]); // nx
+                interleavedData.push_back(normData[i * 3 + 1]); // ny
+                interleavedData.push_back(normData[i * 3 + 2]); // nz
+            }
+        }
+    }
+
+    // Generate and bind VBO
+    glGenBuffers(1, &model_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, model_vbo);
+    // Correct buffer size and upload data
+    glBufferData(GL_ARRAY_BUFFER, interleavedData.size() * sizeof(float), interleavedData.data(), GL_STATIC_DRAW);
+
+
+    // Generate and bind VAO
+    glGenVertexArrays(1, &model_vao);
+    glBindVertexArray(model_vao);
+
+    // Enable and set vertex attribute pointers
+    // Attribute 0: Position (3 floats)
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*6, 0); // Vertex attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*6, reinterpret_cast<void*>(3*sizeof(GLfloat))); // Normals attribute
+
+    // Unbind VAO and VBO to prevent accidental modifications
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    std::cout << "LOADED CORAL" << std::endl;
+    return interleavedData;
+}
 
 
 void Realtime::initializeGL() {
@@ -161,6 +237,7 @@ void Realtime::initializeGL() {
     OpenGLHelper::bindVBOVAO(&Cylinder.vbo, &Cylinder.vao);
     OpenGLHelper::bindVBOVAO(&Sphere.vbo, &Sphere.vao);
     OpenGLHelper::bindVBOVAO(&Cube.vbo, &Cube.vao);
+
     glUseProgram(m_texture_shader);
     glUniform1i(glGetUniformLocation(m_texture_shader, "s2D"), 0);
 
@@ -216,6 +293,7 @@ bool isRetracting = false;
 float t = 0;
 
 void Realtime::paintGL() {
+
     t+=0.01;
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
@@ -233,42 +311,36 @@ void Realtime::paintGL() {
         }
         m_fishVector[j].render(m_shader,renderData.globalData);
     }
+
     PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     PaintGLHelper::setupLights(m_shader, renderData.lights);
-    PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
+    // PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
+
+    // BEGIN MY CODE
+    if (settings.sceneFilePath != "") {
+
+
+        auto shape = renderData.shapes[0];
+        auto globalData = renderData.globalData;
+
+
+        glUniformMatrix4fv(glGetUniformLocation(m_shader, "modelMatrix"), 1, GL_FALSE, &shape.ctm[0][0]);
+        glUniform4fv(glGetUniformLocation(m_shader, "shapeColor"), 1, glm::value_ptr(shape.primitive.material.cAmbient * globalData.ka));
+        glUniform4fv(glGetUniformLocation(m_shader, "shapeDiffuse"), 1, glm::value_ptr(shape.primitive.material.cDiffuse * globalData.kd));
+        glUniform4fv(glGetUniformLocation(m_shader, "shapeSpecular"), 1, glm::value_ptr(shape.primitive.material.cSpecular * globalData.ks));
+        glUniform1f(glGetUniformLocation(m_shader, "shininess"), shape.primitive.material.shininess);
+    }
+    glBindVertexArray(model_vao);
+    glDrawArrays(GL_TRIANGLES, 0, coral_data.size() / 6);
+    glBindVertexArray(0);
+
+    // END MY CODE
     glUseProgram(0);
 
     SceneCameraData& camera = renderData.cameraData;
     glm::vec3 position = glm::vec3(camera.pos);
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
-    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
-
-    if (m_mouseDown) {
-        isRetracting = false;
-        // Increase the press duration while the mouse is held down
-        pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
-        m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
-    } else if (pressDuration > 0) {
-        // Start the forward throw on mouse release
-        isThrowing = true;
-        pressDuration = 0.0f; // Reset press duration
-    }
-
-    if (isThrowing) {
-        m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
-        f += 0.5f; // Progress forward motion
-        if (f > 30.f) {
-            // End the throw after the forward motion is complete
-            isThrowing = false;
-            f = 0.0f;
-            isRetracting = true;
-        }
-    }
-
-    if (isRetracting){
-        m_fishingRod.drawFishingRodBack(0,glm::normalize(glm::cross(look,up)));
-    }
 
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
@@ -326,6 +398,7 @@ void Realtime::sceneChanged() {
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
     m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
+    coral_data = getModelData();
     update();
 }
 

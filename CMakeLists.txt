@@ -50,6 +50,9 @@ add_executable(${PROJECT_NAME}
     src/fishingrod.h src/fishingrod.cpp
     src/fishingline.h src/fishingline.cpp
     src/fish.h src/fish.cpp
+
+    src/terrain/terrain.h
+    src/terrain/terrain.cpp
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
@@ -57,7 +60,10 @@ add_subdirectory(glm)
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`
 add_library(StaticGLEW STATIC glew/src/glew.c
-    src/shapes/cone.h src/shapes/cone.cpp)
+    src/shapes/cone.h src/shapes/cone.cpp
+    lib/tiny_gltf.h
+    lib/stb_image.h
+    lib/tiny_gltf.h lib/tiny_gltf.cpp  )
 include_directories(${PROJECT_NAME} PRIVATE glew/include)
 
 # Specifies libraries to be linked (Qt components, glew, etc)
@@ -79,6 +85,9 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/default.vert
         resources/shaders/postP.frag
         resources/shaders/postP.vert
+        resources/shaders/lab10.frag
+
+        src/terrain/models/tall_coral.glb
 )
 
 # GLEW: this provides support for Windows (including 64-bit)

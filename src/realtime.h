@@ -42,6 +42,8 @@ private:
     void timerEvent(QTimerEvent *event) override;
     void rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float xOffset, float yOffset, float sensitivity = 0.1f);
 
+    std::vector<float> getModelData();
+
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
     QElapsedTimer m_elapsedTimer;                       // Stores timer which keeps track of actual time between frames
@@ -51,12 +53,18 @@ private:
     glm::vec2 m_prev_mouse_pos;                         // Stores mouse position
     std::unordered_map<Qt::Key, bool> m_keyMap;         // Stores whether keys are pressed or not
 
+    std::vector<float> coral_data;
+
     // Device Correction Variables
     double m_devicePixelRatio;
     std::vector<fish> m_fishVector;
     GLuint m_shader; // Stores id of shader program
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
+
+    GLuint model_vbo;
+    GLuint model_vao;
+
     glm::mat4 m_view;
     RenderData renderData;
 };
