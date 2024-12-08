@@ -205,7 +205,7 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
-    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
+    settings.sceneFilePath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
     sceneChanged();
     settingsChanged();
 }
