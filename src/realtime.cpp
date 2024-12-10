@@ -132,7 +132,7 @@ void makeFBO(){
 }
 
 
-NetworkClient client("127.0.0.1", 12345);
+NetworkClient client("127.0.0.1", 9269);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -210,7 +210,7 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
-    settings.sceneFilePath = "../../scenefiles/fish_game.json";
+    settings.sceneFilePath = "../../scenes/fish_game.json";
     sceneChanged();
     settingsChanged();
     int playerNum = client.VJoin();
@@ -254,6 +254,14 @@ void Realtime::paintGL() {
 
     if(player.playerType == player::PlayerType::Fisherman) {
         m_fishingRod.render(m_shader,renderData.globalData);
+        for (SceneLightData& light : renderData.lights) {
+            if (light.type == LightType::LIGHT_SPOT) {
+                // Transform the light position by the view matrix
+                light.pos = renderData.cameraData.pos;
+                light.dir = renderData.cameraData.look;
+            }
+        }
+
     }
     glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     std::string serverResponse;
