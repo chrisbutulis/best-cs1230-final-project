@@ -11,8 +11,7 @@ public:
     ~NetworkClient();
 
     int VJoin();                // Join the server
-    std::string VFetch();                // Fetch the most current information
-    void VUpdate(const std::string& data); // Send the player's position
+    void VSync(const std::string& updateData, std::string& serverResponse);
     void VDisconnect();                  // Disconnect from the server
 
 private:

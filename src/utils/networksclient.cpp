@@ -101,53 +101,41 @@ int NetworkClient::VJoin() {
 
     std::cout << "Assigned player number: " << playerNumber << std::endl;
 
-    receiveThread = std::thread(&NetworkClient::receiveLoop, this);
     return playerNumber;
 }
 
-std::string NetworkClient::VFetch() {
-    if (!connected) {
-        std::cerr << "Not connected to the server." << std::endl;
-        return "";
-    }
-
-    // Send a fetch request (Protocol 4)
-    auto message = createMessage(playerNumber, 4, "");
-    if (send(clientSocket, message.data(), message.size(), 0) < 0) {
-        perror("Failed to send fetch request");
-        return "";
-    }
-
-    // Wait for server response
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-    if (bytesRead <= 0) {
-        std::cerr << "Failed to fetch data from server." << std::endl;
-        return "";
-    }
-
-    int length, protocol, senderPlayerNumber;
-    parseHeader(buffer, length, senderPlayerNumber, protocol);
-    if (protocol != 4 || senderPlayerNumber != playerNumber) {
-        std::cerr << "Invalid fetch response." << std::endl;
-        return "";
-    }
-
-    return std::string(buffer + 12, length - 12); // Extract the payload
-}
-
-void NetworkClient::VUpdate(const std::string& data) {
+void NetworkClient::VSync(const std::string& updateData, std::string& serverResponse) {
     if (!connected) {
         std::cerr << "Not connected to the server." << std::endl;
         return;
     }
 
     // Send an update request (Protocol 3)
-    auto message = createMessage(playerNumber, 3, data);
+    auto message = createMessage(playerNumber, 3, updateData);
     if (send(clientSocket, message.data(), message.size(), 0) < 0) {
         perror("Failed to send update data");
+        return;
     }
+
+    // Wait for the server's response
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+    if (bytesRead <= 0) {
+        std::cerr << "Failed to receive data from the server." << std::endl;
+        return;
+    }
+
+    // Parse the response
+    int length, protocol, senderPlayerNumber;
+    parseHeader(buffer, length, senderPlayerNumber, protocol);
+    if (protocol != 3 || senderPlayerNumber != playerNumber) {
+        std::cerr << "Invalid sync response." << std::endl;
+        return;
+    }
+
+    // Extract the server's response payload
+    serverResponse = std::string(buffer + 12, length - 12);
 }
 
 void NetworkClient::VDisconnect() {
@@ -169,25 +157,4 @@ void NetworkClient::VDisconnect() {
 
         std::cout << "Disconnected from the server." << std::endl;
     }
-}
-
-void NetworkClient::receiveLoop() {
-    char buffer[1024];
-
-    // while (connected) {
-    //     memset(buffer, 0, sizeof(buffer));
-
-    //     int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-    //     if (bytesRead <= 0) {
-    //         std::cerr << "Server connection lost or closed." << std::endl;
-    //         connected = false;
-    //         break;
-    //     }
-
-    //     int length, protocol, senderPlayerNumber;
-    //     parseHeader(buffer, length, senderPlayerNumber, protocol);
-
-    //     std::cout << "Received Protocol " << protocol << " from Player " << senderPlayerNumber << std::endl;
-    //     latestServerData = std::string(buffer + 12, length - 12); // Update the latest data
-    // }
 }
