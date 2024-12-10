@@ -252,6 +252,8 @@ void Realtime::paintGL() {
     // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
     glUseProgram(m_shader);
 
+    player.playerType = player::PlayerType::Fisherman;
+
     if(player.playerType == player::PlayerType::Fisherman) {
         m_fishingRod.render(m_shader,renderData.globalData);
         for (SceneLightData& light : renderData.lights) {
