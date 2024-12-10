@@ -194,7 +194,7 @@ void Realtime::initializeGL() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     // Set the background color to a deep underwater blue
-    glClearColor(0.0f, 0.4f, 0.7f, 1.0f);
+    glClearColor(0.0f, 0.1f, 0.3f, 1.0f);
 
     // Optional: Enable and configure fog for an underwater effect
     glEnable(GL_FOG);
@@ -254,12 +254,20 @@ void Realtime::paintGL() {
         // m_fishVector[j].moveForward();
         // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
         // m_fishVector[j].update(t);
-        m_fishVector[j].ctm = unmarshalMat4(serverResponse);
+        m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
         if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
             m_fishVector[j].changeColor();
         }
         m_fishVector[j].render(m_shader,renderData.globalData);
     }
+    for (SceneLightData& light : renderData.lights) {
+        if (light.type == LightType::LIGHT_SPOT) {
+            // Transform the light position by the view matrix
+            light.pos = renderData.cameraData.pos;
+            light.dir = renderData.cameraData.look;
+        }
+    }
+
 
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
@@ -271,7 +279,6 @@ void Realtime::paintGL() {
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
     m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
-
     if (m_mouseDown && cooldownTime<0.01) {
         isRetracting = false;
         pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
