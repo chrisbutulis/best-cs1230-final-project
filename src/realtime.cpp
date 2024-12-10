@@ -78,6 +78,15 @@ void Realtime::finish() {
 
     OpenGLHelper::deleteBuffersAndVAOs(buffers, arrays, 4);
 
+    glDeleteProgram(m_texture_shader);
+    glDeleteProgram(m_texture_shader);
+
+    glDeleteRenderbuffers(1, &m_fbo_renderbuffer);
+    glDeleteTextures(1, &m_fbo_texture);
+    glDeleteFramebuffers(1, &m_fbo);
+
+    //TODO: delete all the coral and fish vaos vbos
+
     this->doneCurrent();
 }
 
