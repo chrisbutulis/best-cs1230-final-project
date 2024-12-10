@@ -132,7 +132,7 @@ void makeFBO(){
 }
 
 
-NetworkClient client("127.0.0.1", 9269);
+// NetworkClient client("127.0.0.1", 9269);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -210,20 +210,20 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
-    settings.sceneFilePath = "../../scenes/fish_game.json";
+    settings.sceneFilePath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/scenes/fish_game.json";
     sceneChanged();
     settingsChanged();
-    int playerNum = client.VJoin();
-    if (playerNum<1) {
-        std::cerr << "Failed to connect to the server." << std::endl;
-    }
-    if(playerNum == 1) {
-        player = {player::PlayerType::Fisherman};
-    }
-    if(playerNum == 2) {
-        player = {player::PlayerType::Fish};
-    }
-    std::cout << "Player "<< playerNum << std::endl;
+    // int playerNum = client.VJoin();
+    // if (playerNum<1) {
+    //     std::cerr << "Failed to connect to the server." << std::endl;
+    // }
+    // if(playerNum == 1) {
+    //     player = {player::PlayerType::Fisherman};
+    // }
+    // if(playerNum == 2) {
+    //     player = {player::PlayerType::Fish};
+    // }
+    // std::cout << "Player "<< playerNum << std::endl;
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -265,12 +265,12 @@ void Realtime::paintGL() {
     }
     glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     std::string serverResponse;
-    client.VSync(marshalMat4(viewMatrix), serverResponse);
+    // client.VSync(marshalMat4(viewMatrix), serverResponse);
         for(int j =0; j<m_fishVector.size();j++){
-            // m_fishVector[j].moveForward();
-            // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
-            // m_fishVector[j].update(t);
-            m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
+        //     // m_fishVector[j].moveForward();
+        //     // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+        //     // m_fishVector[j].update(t);
+        //     m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
             if(player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();

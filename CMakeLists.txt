@@ -56,6 +56,14 @@ add_executable(${PROJECT_NAME}
     src/utils/utils.h src/utils/utils.cpp
     src/player.h
     src/player.cpp
+
+
+    src/terrain/terraingenerator.h src/terrain/terraingenerator.cpp
+    src/terrain/coral.h src/terrain/coral.cpp
+    src/terrain/braincoral.h
+    src/terrain/tallcoral.h
+    src/terrain/braincoral.cpp
+    src/terrain/genericcoral.h src/terrain/genericcoral.cpp
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
@@ -67,12 +75,6 @@ add_library(StaticGLEW STATIC glew/src/glew.c
     lib/tiny_gltf.h
     lib/stb_image.h
     lib/tiny_gltf.h lib/tiny_gltf.cpp
-    src/terrain/terraingenerator.h src/terrain/terraingenerator.cpp
-    src/terrain/coral.h src/terrain/coral.cpp
-    src/terrain/braincoral.h
-    src/terrain/tallcoral.h
-    src/terrain/braincoral.cpp
-    src/terrain/genericcoral.h src/terrain/genericcoral.cpp
 )
 include_directories(${PROJECT_NAME} PRIVATE glew/include)
 

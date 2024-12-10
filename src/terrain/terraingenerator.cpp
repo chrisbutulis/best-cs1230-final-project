@@ -12,9 +12,9 @@
 #include <random>
 
 TerrainGenerator::TerrainGenerator() {
-    tallCoralData = modelloader::LoadGLBVerticesNormals("../../src/models/3d-models/tall_coral.glb");
-    brainCoralData = modelloader::LoadGLBVerticesNormals("../../src/models/3d-models/brain_coral.glb");
-    genericCoralData = modelloader::LoadGLBVerticesNormals("../../src/models/3d-models/generic_coral.glb");
+    tallCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/tall_coral.glb");
+    brainCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/brain_coral.glb");
+    genericCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/generic_coral.glb");
 }
 
 glm::mat4 getCTM(float xTransform, float zTransform) {
