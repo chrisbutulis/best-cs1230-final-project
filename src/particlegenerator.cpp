@@ -1,7 +1,8 @@
 #include "particlegenerator.h"
+#include <iostream>
 
 ParticleGenerator::ParticleGenerator()
-    : generatorPosition(0.0f, 0.0f, 0.0f), // Default position at the origin
+    : generatorPosition(4.0f, 0.0f, 4.0f), // Default position at the origin
       nr_particles(1000)                   // Default number of particles
 {
     initParticles(); // Initialize the particles
@@ -44,7 +45,7 @@ void ParticleGenerator::initParticles() {
 }
 
 void ParticleGenerator::drawParticles(GLuint m_fullscreen_vao, GLuint m_particle_shader) {
-//    glDepthFunc(GL_ALWAYS); // Render particles regardless of depth
+    glDepthFunc(GL_ALWAYS); // Render particles regardless of depth
     // Render particles
     glUseProgram(m_particle_shader);
     glBindVertexArray(m_fullscreen_vao);
@@ -55,6 +56,6 @@ void ParticleGenerator::drawParticles(GLuint m_fullscreen_vao, GLuint m_particle
             glDrawArrays(GL_POINTS, 0, 1); // Assuming particle shader handles size
         }
     }
-//    glDepthFunc(GL_LESS);   // Reset to default depth testing
+    glDepthFunc(GL_LESS);   // Reset to default depth testing
 }
 

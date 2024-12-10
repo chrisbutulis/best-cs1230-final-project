@@ -299,6 +299,8 @@ void Realtime::paintGL() {
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
 
     //draw particles here
+    glUseProgram(m_particle_shader);
+    PaintGLHelper::setupMatrices(m_particle_shader, m_view, renderData.cameraData);
     generator.drawParticles(m_fullscreen_vao, m_particle_shader);
 
     glBindVertexArray(0);
