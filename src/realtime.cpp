@@ -209,7 +209,7 @@ void Realtime::initializeGL() {
     sceneChanged();
     settingsChanged();
 
-    generator.initParticles();
+//    generator.initParticles();
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
