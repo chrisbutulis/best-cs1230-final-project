@@ -5,7 +5,7 @@
 #include "shapes/Cone.h"
 #include "shapes/Cube.h"
 #include "shapes/Sphere.h"
-#include "shapes/cylinder.h"
+#include "shapes/Cylinder.h"
 #include "utils/sceneparser.h"
 #include <GL/glew.h>
 #include <glm/glm.hpp>

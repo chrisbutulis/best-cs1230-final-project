@@ -16,7 +16,7 @@
 #include <QTime>
 #include <QTimer>
 #include "utils/sceneparser.h"
-#include "FishingRod.h"
+#include "fishingrod.h"
 
 class Realtime : public QOpenGLWidget
 {
@@ -66,7 +66,7 @@ private:
     std::vector<coral*> coral_data;
 
     // Gameplay
-    player player;
+    player Player;
 
     glm::mat4 m_view;
     RenderData renderData;

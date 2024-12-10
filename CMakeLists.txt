@@ -63,7 +63,7 @@ add_subdirectory(glm)
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`
 add_library(StaticGLEW STATIC glew/src/glew.c
-    src/shapes/cone.h src/shapes/cone.cpp
+    src/shapes/Cone.h src/shapes/Cone.cpp
     lib/tiny_gltf.h
     lib/stb_image.h
     lib/tiny_gltf.h lib/tiny_gltf.cpp

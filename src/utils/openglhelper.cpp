@@ -1,4 +1,4 @@
-#include "OpenGLHelper.h"
+#include "openglhelper.h"
 #include <iostream>
 
 void OpenGLHelper::bindVBOVAO(GLuint* vbo, GLuint* vao) {

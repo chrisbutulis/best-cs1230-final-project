@@ -12,8 +12,8 @@
 #include <QKeyEvent>
 #include <iostream>
 #include "settings.h"
-#include "shapes/cone.h"
-#include "shapes/cylinder.h"
+#include "shapes/Cone.h"
+#include "shapes/Cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
 #include "utils/networksclient.h"
@@ -132,7 +132,7 @@ void makeFBO(){
 }
 
 
-NetworkClient client("127.0.0.1", 9269);
+NetworkClient client("10.37.55.169", 9269);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -220,11 +220,11 @@ void Realtime::initializeGL() {
         std::cerr << "Failed to connect to the server." << std::endl;
     }
     if(playerNum == 1) {
-        player = {player::PlayerType::Fisherman};
+        Player = {player::PlayerType::Fisherman};
          opponent.fishData = modelloader::LoadGLBVerticesNormals("../../src/models/3d-models/trout.glb");
     }
     if(playerNum == 2) {
-        player = {player::PlayerType::Fish};
+        Player = {player::PlayerType::Fish};
         opponent.fishData = modelloader::LoadGLBVerticesNormals("../../src/models/3d-models/daniel_ritchie.glb");
     }
     std::cout << "Player "<< playerNum << std::endl;
@@ -259,7 +259,7 @@ void Realtime::paintGL() {
     // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
     glUseProgram(m_shader);
 
-    if(player.playerType == player::PlayerType::Fisherman) {
+    if(Player.playerType == player::PlayerType::Fisherman) {
         m_fishingRod.render(m_shader,renderData.globalData);
         for (SceneLightData& light : renderData.lights) {
             if (light.type == LightType::LIGHT_SPOT) {
@@ -278,7 +278,7 @@ void Realtime::paintGL() {
             // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
             // m_fishVector[j].update(t);
             m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
-            if(player.playerType == player::PlayerType::Fisherman) {
+            if(Player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();
                 }
@@ -286,7 +286,7 @@ void Realtime::paintGL() {
             PaintGLHelper::renderFish(m_shader, m_fishVector[j], renderData);
         }
 
-    PaintGLHelper::setupLights(m_shader, renderData.lights, player.playerType);
+    PaintGLHelper::setupLights(m_shader, renderData.lights, Player.playerType);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
     PaintGLHelper::renderCoral(m_shader, coral_data, renderData);
     glUseProgram(0);
