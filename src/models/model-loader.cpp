@@ -63,7 +63,7 @@ void ComputeNodeTransforms(const tinygltf::Model &model, int nodeIndex, const gl
 }
 
 // Load GLB and return transformed vertices/normals
-std::vector<float> LoadGLBVerticesNormals(const std::string &filename) {
+std::vector<float> modelloader::LoadGLBVerticesNormals(const std::string &filename) {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
     std::string err, warn;
@@ -135,14 +135,12 @@ std::vector<float> LoadGLBVerticesNormals(const std::string &filename) {
     return finalVertices;
 }
 
-std::vector<float> modelloader::loadGLB(GLuint& vbo, GLuint& vao, std::string filePath) {
-    std::vector<float> interleavedData = LoadGLBVerticesNormals(filePath);
-
+void modelloader::loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> data) {
     // Generate and bind VBO
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     // Correct buffer size and upload data
-    glBufferData(GL_ARRAY_BUFFER, interleavedData.size() * sizeof(float), interleavedData.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_STATIC_DRAW);
 
 
     // Generate and bind VAO
@@ -159,8 +157,6 @@ std::vector<float> modelloader::loadGLB(GLuint& vbo, GLuint& vao, std::string fi
     // Unbind VAO and VBO to prevent accidental modifications
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    std::cout << "LOADED CORAL" << std::endl;
-    return interleavedData;
 }
 
 void modelloader::renderModel(GLuint &shader, GLuint &terrain_vao, RenderData renderData, std::vector<float> data) {
