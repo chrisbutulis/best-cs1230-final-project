@@ -13,6 +13,8 @@
 #include "shapes/Cone.h"
 #include "shapes/Cylinder.h"
 #include "utils/openglhelper.h"
+#include "utils/paintglhelper.h"
+#include "particlegenerator.h"
 
 // ================== Project 5: Lights, Camera
 
@@ -66,14 +68,7 @@ float kernel[9] = {
 
     GLuint quadVAO, quadVBO;
 
-    //for kitten
-    QImage m_image;
-    GLuint m_kitten_texture;
-
-    //for particles
-    std::vector<Realtime::Particle> particles;
-    unsigned int nr_particles = 500;
-
+    ParticleGenerator generator;
 
 void Realtime::finish() {
     killTimer(m_timer);
@@ -136,66 +131,6 @@ void makeFBO(){
     glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
 }
 
-void bindKitten() {
-    // Task 1: Generate a texture
-    glGenTextures(1, &m_kitten_texture);
-
-    // Task 2: Set the active texture slot to texture slot 0
-    glActiveTexture(GL_TEXTURE0);
-
-    // Task 3: Bind the texture
-    glBindTexture(GL_TEXTURE_2D, m_kitten_texture);
-
-    // Task 4: Define a solid red texture (1x1 pixel)
-    unsigned char red_pixel[4] = {255, 0, 0, 255}; // RGBA format (solid red)
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, red_pixel);
-
-    // Task 5: Set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Task 6: Unbind the texture
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void Realtime::initParticles() {
-    particles.resize(nr_particles);
-    for (auto &particle : particles) {
-        particle.Position = glm::vec2(0.0f, 0.0f); // Center of the screen
-        particle.Velocity = glm::vec2(
-            (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f, // Random X velocity [-1, 1]
-            (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f  // Random Y velocity [-1, 1]
-        );
-        particle.Color = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f); // Example: orange color
-        particle.Life = static_cast<float>(rand()) / RAND_MAX * 5.0f; // Random life span [0, 5]
-    }
-}
-
-void Realtime::updateParticles(float deltaTime) {
-    for (auto &particle : particles) {
-        if (particle.Life > 0.0f) {
-            // Decrease life
-            particle.Life -= deltaTime;
-            // Update position based on velocity
-            particle.Position += particle.Velocity * deltaTime;
-            // Optionally fade out
-            particle.Color.a = particle.Life / 5.0f; // Fade alpha over lifetime
-        } else {
-            // Reset particle
-            particle.Position = glm::vec2(0.0f, 0.0f);
-            particle.Velocity = glm::vec2(
-                (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f,
-                (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0f
-            );
-            particle.Life = static_cast<float>(rand()) / RAND_MAX * 5.0f;
-        }
-    }
-}
-
-
-
-
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -229,10 +164,6 @@ void Realtime::initializeGL() {
     OpenGLHelper::bindVBOVAO(&Cube.vbo, &Cube.vao);
     glUseProgram(m_texture_shader);
     glUniform1i(glGetUniformLocation(m_texture_shader, "s2D"), 0);
-
-    //particles
-    bindKitten();
-    initParticles();
 
     std::vector<GLfloat> fullscreen_quad_data = {
         //  POSITIONS          //   UV COORDINATES
@@ -269,7 +200,6 @@ void Realtime::initializeGL() {
     glFogf(GL_FOG_DENSITY, 0.05f); // Adjust density for desired effect
     glHint(GL_FOG_HINT, GL_NICEST); // Best quality fog
 
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
@@ -278,6 +208,8 @@ void Realtime::initializeGL() {
     settings.sceneFilePath = "/home/dhu34/graphics/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
     sceneChanged();
     settingsChanged();
+
+    generator.initParticles();
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -301,90 +233,77 @@ float cooldownTime = 0.0f;
 
 void Realtime::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    t+=0.01;
+    glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
+    glViewport(0, 0, m_fbo_width, m_fbo_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
+    glUseProgram(m_shader);
+    m_fishingRod.render(m_shader,renderData.globalData);
 
-    // Render particles
-    glUseProgram(m_particle_shader);
-    glBindVertexArray(m_fullscreen_vao);
-    for (const auto &particle : particles) {
-        if (particle.Life > 0.0f) {
-            glUniform2f(glGetUniformLocation(m_particle_shader, "particlePosition"), particle.Position.x, particle.Position.y);
-            glUniform4f(glGetUniformLocation(m_particle_shader, "particleColor"), particle.Color.r, particle.Color.g, particle.Color.b, particle.Color.a);
-            glDrawArrays(GL_POINTS, 0, 1); // Assuming particle shader handles size
+    for(int j =0; j<m_fishVector.size();j++){
+        // m_fishVector[j].moveForward();
+        // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+        m_fishVector[j].update(t);
+        if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
+            m_fishVector[j].changeColor();
+        }
+        m_fishVector[j].render(m_shader,renderData.globalData);
+    }
+    PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
+    PaintGLHelper::setupLights(m_shader, renderData.lights);
+    PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
+    glUseProgram(0);
+
+    SceneCameraData& camera = renderData.cameraData;
+    glm::vec3 position = glm::vec3(camera.pos);
+    glm::vec3 look = glm::normalize(glm::vec3(camera.look));
+    glm::vec3 up = glm::normalize(glm::vec3(camera.up));
+    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
+
+    if (m_mouseDown && cooldownTime<0.01) {
+        isRetracting = false;
+        // Increase the press duration while the mouse is held down
+        pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
+        m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
+    } else if (pressDuration > 0) {
+        // Start the forward throw on mouse release
+        isThrowing = true;
+        cooldownTime = 3.0f * (1.0f - 0.5f*pressDuration);
+        // pressDuration = 0.0f; // Reset press duration
+    }
+
+    if (isThrowing) {
+        m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
+        f += (glm::pow(2.f,1.5f*1.5f*pressDuration*pressDuration)/5.f-0.19f); // Progress forward motion
+        if (f > 30.f*pressDuration*pressDuration) {
+            // End the throw after the forward motion is complete
+            isThrowing = false;
+            f = 0.0f;
+            isRetracting = true;
+            pressDuration = 0.0f;
         }
     }
 
+    if (isRetracting){
+        m_fishingRod.retraveLine(glm::normalize(glm::cross(look,up)));
+    }
+
+    if (cooldownTime > 0.0f) {
+        cooldownTime -= 0.02f; // Decrease cooldown timer (assuming ~60 FPS, adjust accordingly)
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
+    glViewport(0, 0, m_screen_width, m_screen_height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
+
+    //draw particles here
+    generator.drawParticles(m_fullscreen_vao, m_particle_shader);
+
     glBindVertexArray(0);
     glUseProgram(0);
-
-//    t+=0.01;
-//    glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
-//    glViewport(0, 0, m_fbo_width, m_fbo_height);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
-//    glUseProgram(m_shader);
-//    m_fishingRod.render(m_shader,renderData.globalData);
-
-//    for(int j =0; j<m_fishVector.size();j++){
-//        // m_fishVector[j].moveForward();
-//        // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
-//        m_fishVector[j].update(t);
-//        if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
-//            m_fishVector[j].changeColor();
-//        }
-//        m_fishVector[j].render(m_shader,renderData.globalData);
-//    }
-//    PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
-//    PaintGLHelper::setupLights(m_shader, renderData.lights);
-//    PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
-//    glUseProgram(0);
-
-//    SceneCameraData& camera = renderData.cameraData;
-//    glm::vec3 position = glm::vec3(camera.pos);
-//    glm::vec3 look = glm::normalize(glm::vec3(camera.look));
-//    glm::vec3 up = glm::normalize(glm::vec3(camera.up));
-//    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
-
-//    if (m_mouseDown && cooldownTime<0.01) {
-//        isRetracting = false;
-//        // Increase the press duration while the mouse is held down
-//        pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
-//        m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
-//    } else if (pressDuration > 0) {
-//        // Start the forward throw on mouse release
-//        isThrowing = true;
-//        cooldownTime = 3.0f * (1.0f - 0.5f*pressDuration);
-//        // pressDuration = 0.0f; // Reset press duration
-//    }
-
-//    if (isThrowing) {
-//        m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
-//        f += (glm::pow(2.f,1.5f*1.5f*pressDuration*pressDuration)/5.f-0.19f); // Progress forward motion
-//        if (f > 30.f*pressDuration*pressDuration) {
-//            // End the throw after the forward motion is complete
-//            isThrowing = false;
-//            f = 0.0f;
-//            isRetracting = true;
-//            pressDuration = 0.0f;
-//        }
-//    }
-
-//    if (isRetracting){
-//        m_fishingRod.retraveLine(glm::normalize(glm::cross(look,up)));
-//    }
-
-//    if (cooldownTime > 0.0f) {
-//        cooldownTime -= 0.02f; // Decrease cooldown timer (assuming ~60 FPS, adjust accordingly)
-//    }
-
-//    //draw particles here?
-
-//    glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
-//    glViewport(0, 0, m_screen_width, m_screen_height);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
 }
-
-
 
 
 void Realtime::resizeGL(int w, int h) {
@@ -516,10 +435,8 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
 
         // Update the camera's look and up vectors
         camera.look = glm::normalize(glm::vec4(look, 0.0f));
-
+        update(); // asks for a PaintGL() call to occur
     }
-    update(); // asks for a PaintGL() call to occur
-
 }
 
 
@@ -580,7 +497,8 @@ void Realtime::timerEvent(QTimerEvent *event) {
         verticalVelocity = 0.0f; // Stop vertical motion
     }
 
-    updateParticles(deltaTime);
+    //update particles here
+    generator.updateParticles(deltaTime);
 
     update(); // Requests a PaintGL() call to occur
 }

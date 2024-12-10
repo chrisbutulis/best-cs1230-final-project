@@ -16,7 +16,7 @@ glm::mat4 getTranslationMatrix(float dx, float dy, float dz) {
 
 
 
-glm::mat4 calculateViewMatrix(const SceneCameraData &camera) {
+glm::mat4 PaintGLHelper::calculateViewMatrix(const SceneCameraData &camera) {
     // Camera position, target, and up vector
     glm::vec3 pos = glm::vec3(camera.pos);
     glm::vec3 look = glm::vec3(camera.look);
