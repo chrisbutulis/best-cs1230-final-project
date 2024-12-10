@@ -210,14 +210,20 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
-    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenefiles/fish_game.json";
+    settings.sceneFilePath = "../../scenefiles/fish_game.json";
     sceneChanged();
     settingsChanged();
-    int player = client.VJoin();
-    if (player<1) {
+    int playerNum = client.VJoin();
+    if (playerNum<1) {
         std::cerr << "Failed to connect to the server." << std::endl;
     }
-    std::cout << "Player "<< player << std::endl;
+    if(playerNum == 1) {
+        player = {player::PlayerType::Fisherman};
+    }
+    if(playerNum == 2) {
+        player = {player::PlayerType::Fish};
+    }
+    std::cout << "Player "<< playerNum << std::endl;
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -245,29 +251,25 @@ void Realtime::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
     glUseProgram(m_shader);
-    m_fishingRod.render(m_shader,renderData.globalData);
+
+    if(player.playerType == player::PlayerType::Fisherman) {
+        m_fishingRod.render(m_shader,renderData.globalData);
+    }
     glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     std::string serverResponse;
     client.VSync(marshalMat4(viewMatrix), serverResponse);
-
-    for(int j =0; j<m_fishVector.size();j++){
-        // m_fishVector[j].moveForward();
-        // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
-        // m_fishVector[j].update(t);
-        m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
-        if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
-            m_fishVector[j].changeColor();
+        for(int j =0; j<m_fishVector.size();j++){
+            // m_fishVector[j].moveForward();
+            // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+            // m_fishVector[j].update(t);
+            m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
+            if(player.playerType == player::PlayerType::Fisherman) {
+                if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
+                    m_fishVector[j].changeColor();
+                }
+            }
+            m_fishVector[j].render(m_shader,renderData.globalData);
         }
-        m_fishVector[j].render(m_shader,renderData.globalData);
-    }
-    for (SceneLightData& light : renderData.lights) {
-        if (light.type == LightType::LIGHT_SPOT) {
-            // Transform the light position by the view matrix
-            light.pos = renderData.cameraData.pos;
-            light.dir = renderData.cameraData.look;
-        }
-    }
-
 
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
@@ -511,11 +513,11 @@ void Realtime::timerEvent(QTimerEvent *event) {
     }
 
     // Clamp position to stay within the 10x10x10 cube
-    const float minBound = -10.0f;
-    const float maxBound = 10.0f;
+    const float minBound = -15.0f;
+    const float maxBound = 15.0f;
 
     newPos.x = glm::clamp(newPos.x, minBound, maxBound);
-    newPos.y = glm::clamp(newPos.y, minBound, maxBound);
+    newPos.y = glm::clamp(newPos.y, 0.0f, maxBound);
     newPos.z = glm::clamp(newPos.z, minBound, maxBound);
 
     // Update camera position
