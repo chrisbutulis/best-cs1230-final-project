@@ -1,8 +1,10 @@
 #include "realtime.h"
-#include "terrain/coral.h"
-#include "terrain/terraingenerator.h"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #include "shapes/Cube.h"
 #include "shapes/Sphere.h"
+#include "terrain/terraingenerator.h"
 #include "utils/shaderloader.h"
 #include <QCoreApplication>
 #include <QMouseEvent>
@@ -13,7 +15,6 @@
 #include "shapes/cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
-#include "models/model-loader.h"
 #include "utils/networksclient.h"
 #include "utils/utils.h"
 
@@ -67,7 +68,7 @@ float kernel[9] = {
     1.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f
 };
 
-    GLuint quadVAO, quadVBO;
+GLuint quadVAO, quadVBO;
 void Realtime::finish() {
     killTimer(m_timer);
     this->makeCurrent();
@@ -130,8 +131,11 @@ void makeFBO(){
 
 }
 
+
+// NetworkClient client("127.0.0.1", 12345);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
+
     m_timer = startTimer(1000/60);
     m_elapsedTimer.start();
     m_screen_width = size().width() * m_devicePixelRatio;
@@ -162,7 +166,6 @@ void Realtime::initializeGL() {
     OpenGLHelper::bindVBOVAO(&Cylinder.vbo, &Cylinder.vao);
     OpenGLHelper::bindVBOVAO(&Sphere.vbo, &Sphere.vao);
     OpenGLHelper::bindVBOVAO(&Cube.vbo, &Cube.vao);
-
     glUseProgram(m_texture_shader);
     glUniform1i(glGetUniformLocation(m_texture_shader, "s2D"), 0);
 
@@ -210,6 +213,11 @@ void Realtime::initializeGL() {
     settings.sceneFilePath = "../../scenefiles/fish_game.json";
     sceneChanged();
     settingsChanged();
+    // int player = client.VJoin();
+    // if (player<1) {
+    //     std::cerr << "Failed to connect to the server." << std::endl;
+    // }
+    // std::cout << "Player "<< player << std::endl;
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -232,12 +240,11 @@ float t = 0;
 float cooldownTime = 0.0f;
 
 void Realtime::paintGL() {
-
     t+=0.01;
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
+    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
     glUseProgram(m_shader);
     m_fishingRod.render(m_shader,renderData.globalData);
 
@@ -245,23 +252,54 @@ void Realtime::paintGL() {
         m_fishVector[j].moveForward();
         m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
         m_fishVector[j].update(t);
+        // m_fishVector[j].ctm = unmarshalMat4(client.VFetch());
         if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
             m_fishVector[j].changeColor();
         }
         m_fishVector[j].render(m_shader,renderData.globalData);
     }
-
-    PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
+    glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
+    // client.VUpdate(marshalMat4(viewMatrix));
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
     PaintGLHelper::renderCoral(m_shader, coral_data, renderData);
-
     glUseProgram(0);
 
     SceneCameraData& camera = renderData.cameraData;
     glm::vec3 position = glm::vec3(camera.pos);
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
+    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
+
+    if (m_mouseDown && cooldownTime<0.01) {
+        isRetracting = false;
+        pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
+        m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
+    } else if (pressDuration > 0) {
+        isThrowing = true;
+        cooldownTime = 3.0f * (1.0f - 0.5f*pressDuration);
+        // pressDuration = 0.0f; // Reset press duration
+    }
+
+    if (isThrowing) {
+        m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
+        f += (glm::pow(2.f,1.5f*1.5f*pressDuration*pressDuration)/5.f-0.19f);
+        if (f > 30.f*pressDuration*pressDuration) {
+
+            isThrowing = false;
+            f = 0.0f;
+            isRetracting = true;
+            pressDuration = 0.0f;
+        }
+    }
+
+    if (isRetracting){
+        m_fishingRod.retraveLine(glm::normalize(glm::cross(look,up)));
+    }
+
+    if (cooldownTime > 0.0f) {
+        cooldownTime -= 0.02f;
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
@@ -357,13 +395,13 @@ void Realtime::mouseReleaseEvent(QMouseEvent *event) {
 glm::mat3 rodriguesRotate(const glm::vec3& axis, float angleRadians) {
     glm::vec3 k = glm::normalize(axis);
     float Ux = k.x;
-        float Uy = k.y;
-        float Uz = k.z;
+    float Uy = k.y;
+    float Uz = k.z;
     float cosTheta = cos(angleRadians);
-        float sinTheta = sin(angleRadians);
-return glm::mat3 {cosTheta + Ux * Ux * (1 - cosTheta), Ux*Uy * (1 - cosTheta) + Uz * sinTheta, Ux*Uz * (1 - cosTheta) - Uy * sinTheta,
-              Ux*Uy * (1 - cosTheta) - Uz * sinTheta, cosTheta + Uy*Uy * (1 - cosTheta), Uy*Uz * (1 - cosTheta) + Ux * sinTheta,
-              Ux*Uz * (1 - cosTheta) + Uy * sinTheta, Uy*Uz * (1 - cosTheta) - Ux * sinTheta, cosTheta + Uz*Uz * (1 - cosTheta)};
+    float sinTheta = sin(angleRadians);
+    return glm::mat3 {cosTheta + Ux * Ux * (1 - cosTheta), Ux*Uy * (1 - cosTheta) + Uz * sinTheta, Ux*Uz * (1 - cosTheta) - Uy * sinTheta,
+                     Ux*Uy * (1 - cosTheta) - Uz * sinTheta, cosTheta + Uy*Uy * (1 - cosTheta), Uy*Uz * (1 - cosTheta) + Ux * sinTheta,
+                     Ux*Uz * (1 - cosTheta) + Uy * sinTheta, Uy*Uz * (1 - cosTheta) - Ux * sinTheta, cosTheta + Uz*Uz * (1 - cosTheta)};
 }
 
 
@@ -476,4 +514,3 @@ void Realtime::timerEvent(QTimerEvent *event) {
     camera.pos = glm::vec4(newPos, 1.0f);
     update(); // Requests a PaintGL() call to occur
 }
-

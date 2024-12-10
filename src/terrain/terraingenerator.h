@@ -13,6 +13,7 @@ private:
     // Pre-loaded data
     std::vector<float> tallCoralData;
     std::vector<float> brainCoralData;
+    std::vector<float> genericCoralData;
 
 };
 

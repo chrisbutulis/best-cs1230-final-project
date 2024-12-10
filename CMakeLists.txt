@@ -70,6 +70,7 @@ add_library(StaticGLEW STATIC glew/src/glew.c
     src/terrain/braincoral.h
     src/terrain/tallcoral.h
     src/terrain/braincoral.cpp
+    src/terrain/genericcoral.h src/terrain/genericcoral.cpp
 )
 include_directories(${PROJECT_NAME} PRIVATE glew/include)
 
