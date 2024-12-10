@@ -114,3 +114,22 @@ void PaintGLHelper::renderShapes(GLuint shader, const std::vector<RenderShapeDat
     }
 }
 
+void PaintGLHelper::renderCoral(GLuint shader, const std::vector<coral*> coralData, const RenderData& renderData) {
+    if(!renderData.shapes.empty()) {
+        for (coral* coral : coralData) {
+            auto shape = renderData.shapes[0];
+            auto globalData = renderData.globalData;
+
+            glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, &coral->ctm[0][0]);
+            glUniform4fv(glGetUniformLocation(shader, "shapeColor"), 1, glm::value_ptr(coral->cAmbient * globalData.ka));
+            glUniform4fv(glGetUniformLocation(shader, "shapeDiffuse"), 1, glm::value_ptr(coral->cDiffuse * globalData.kd));
+            glUniform4fv(glGetUniformLocation(shader, "shapeSpecular"), 1, glm::value_ptr(coral->cSpecular * globalData.ks));
+            glUniform1f(glGetUniformLocation(shader, "shininess"), coral->shininess);
+
+            glBindVertexArray(coral->vao);
+            glDrawArrays(GL_TRIANGLES, 0, coral->coralData.size() / 6);
+            glBindVertexArray(0);
+        }
+    }
+}
+

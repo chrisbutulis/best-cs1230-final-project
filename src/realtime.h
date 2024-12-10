@@ -2,6 +2,7 @@
 
 // Defined before including GLEW to suppress deprecation messages on macOS
 #include "fish.h"
+#include "terrain/coral.h"
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
 #endif
@@ -61,7 +62,7 @@ private:
     // Modeling
     GLuint coral_vao;
     GLuint coral_vbo;
-    std::vector<float> coral_data;
+    std::vector<coral*> coral_data;
 
     glm::mat4 m_view;
     RenderData renderData;

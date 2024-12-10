@@ -1,7 +1,6 @@
 #include "realtime.h"
-#include "glm/ext/matrix_clip_space.hpp"
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
+#include "terrain/coral.h"
+#include "terrain/terraingenerator.h"
 #include "shapes/Cube.h"
 #include "shapes/Sphere.h"
 #include "utils/shaderloader.h"
@@ -158,7 +157,9 @@ void Realtime::initializeGL() {
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
 
-    coral_data = modelloader::loadGLB(coral_vbo, coral_vao, "../../src/models/3d-models/tall_coral.glb");
+    TerrainGenerator generator;
+    coral_data = generator.generateCoralClusters();
+
     OpenGLHelper::bindVBOVAO(&Cone.vbo, &Cone.vao);
     OpenGLHelper::bindVBOVAO(&Cylinder.vbo, &Cylinder.vao);
     OpenGLHelper::bindVBOVAO(&Sphere.vbo, &Sphere.vao);
@@ -262,8 +263,7 @@ void Realtime::paintGL() {
     // client.VUpdate(marshalMat4(viewMatrix));
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
-
-    modelloader::renderModel(m_shader, coral_vao, renderData, coral_data);
+    PaintGLHelper::renderCoral(m_shader, coral_data, renderData);
 
     glUseProgram(0);
 

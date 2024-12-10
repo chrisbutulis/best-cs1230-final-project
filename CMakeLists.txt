@@ -64,7 +64,13 @@ add_library(StaticGLEW STATIC glew/src/glew.c
     src/shapes/cone.h src/shapes/cone.cpp
     lib/tiny_gltf.h
     lib/stb_image.h
-    lib/tiny_gltf.h lib/tiny_gltf.cpp  )
+    lib/tiny_gltf.h lib/tiny_gltf.cpp
+    src/terrain/terraingenerator.h src/terrain/terraingenerator.cpp
+    src/terrain/coral.h src/terrain/coral.cpp
+    src/terrain/braincoral.h
+    src/terrain/tallcoral.h
+    src/terrain/braincoral.cpp
+)
 include_directories(${PROJECT_NAME} PRIVATE glew/include)
 
 # Specifies libraries to be linked (Qt components, glew, etc)
