@@ -2,6 +2,7 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "src/models/model-loader.h"
 #include "shapes/Cube.h"
 #include "shapes/Sphere.h"
 #include "terrain/terraingenerator.h"
@@ -24,7 +25,6 @@ Cone Cone;
 Cylinder Cylinder;
 Sphere Sphere;
 Cube Cube;
-
 
 Realtime::Realtime(QWidget *parent)
     : QOpenGLWidget(parent),
@@ -209,21 +209,29 @@ void Realtime::initializeGL() {
     glBindVertexArray(0);
 
     makeFBO();
-    m_fishVector.push_back(fish(1));
+
+    fish opponent = fish(1);
     settings.sceneFilePath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/scenes/fish_game.json";
     sceneChanged();
     settingsChanged();
     // int playerNum = client.VJoin();
-    // if (playerNum<1) {
-    //     std::cerr << "Failed to connect to the server." << std::endl;
-    // }
-    // if(playerNum == 1) {
-    //     player = {player::PlayerType::Fisherman};
-    // }
-    // if(playerNum == 2) {
-    //     player = {player::PlayerType::Fish};
-    // }
-    // std::cout << "Player "<< playerNum << std::endl;
+    int playerNum = 2;
+
+    if (playerNum<1) {
+        std::cerr << "Failed to connect to the server." << std::endl;
+    }
+    if(playerNum == 1) {
+        player = {player::PlayerType::Fisherman};
+        opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb");
+    }
+    if(playerNum == 2) {
+        player = {player::PlayerType::Fish};
+        opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/daniel_ritchie.glb");
+    }
+    std::cout << "Player "<< playerNum << std::endl;
+
+    modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
+    m_fishVector.push_back(opponent);
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -263,8 +271,8 @@ void Realtime::paintGL() {
                 light.dir = renderData.cameraData.look;
             }
         }
-
     }
+
     glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     std::string serverResponse;
     // client.VSync(marshalMat4(viewMatrix), serverResponse);
@@ -278,10 +286,10 @@ void Realtime::paintGL() {
                     m_fishVector[j].changeColor();
                 }
             }
-            m_fishVector[j].render(m_shader,renderData.globalData);
+            PaintGLHelper::renderFish(m_shader, m_fishVector[j], renderData);
         }
 
-    PaintGLHelper::setupLights(m_shader, renderData.lights);
+    PaintGLHelper::setupLights(m_shader, renderData.lights, player.playerType);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
     PaintGLHelper::renderCoral(m_shader, coral_data, renderData);
     glUseProgram(0);
@@ -341,6 +349,17 @@ void Realtime::resizeGL(int w, int h) {
         settings.farPlane,
         settings.aspectRatio
         );
+
+    glDeleteRenderbuffers(1, &m_fbo_renderbuffer);
+    glDeleteTextures(1, &m_fbo_texture);
+    glDeleteFramebuffers(1, &m_fbo);
+
+    m_screen_width = size().width() * m_devicePixelRatio;
+    m_screen_height = size().height() * m_devicePixelRatio;
+    m_fbo_width = m_screen_width;
+    m_fbo_height = m_screen_height;
+
+    makeFBO();
 }
 
 void Realtime::sceneChanged() {
@@ -367,9 +386,9 @@ void Realtime::sceneChanged() {
             break;
         }
     }
-    for(int j =0; j<m_fishVector.size();j++){
-        m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
-    }
+    // for(int j =0; j<m_fishVector.size();j++){
+    //     m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
+    // }
     m_fishingRod.setVAOandDataSize(Cylinder.vao,Cylinder.generateShape().size());
     OpenGLHelper::updateShapesAndBuffers(renderData, m_view, Cylinder, Cone, Cube, Sphere, settings);
     SceneCameraData& camera = renderData.cameraData;
@@ -382,9 +401,9 @@ void Realtime::sceneChanged() {
 
 void Realtime::settingsChanged() {
     OpenGLHelper::updateShapesAndBuffers(renderData, m_view, Cylinder, Cone, Cube, Sphere, settings);
-    for(int j =0; j<m_fishVector.size();j++){
-        m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
-    }
+    // for(int j =0; j<m_fishVector.size();j++){
+    //     m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
+    // }
     m_fishingRod.setVAOandDataSize(Cylinder.vao,Cylinder.generateShape().size());
     update();
 }
