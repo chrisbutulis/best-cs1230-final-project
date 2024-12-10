@@ -130,8 +130,6 @@ void makeFBO(){
 
 }
 
-NetworkClient client("127.0.0.1", 12345);
-
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
     m_timer = startTimer(1000/60);
@@ -209,14 +207,9 @@ void Realtime::initializeGL() {
 
     makeFBO();
     m_fishVector.push_back(fish(1));
-    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
+    settings.sceneFilePath = "../../scenefiles/fish_game.json";
     sceneChanged();
     settingsChanged();
-    int player = client.VJoin();
-    if (player<1) {
-        std::cerr << "Failed to connect to the server." << std::endl;
-    }
-    std::cout << "Player "<< player << std::endl;
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -249,18 +242,16 @@ void Realtime::paintGL() {
     m_fishingRod.render(m_shader,renderData.globalData);
 
     for(int j =0; j<m_fishVector.size();j++){
-        // m_fishVector[j].moveForward();
-        // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
-        // m_fishVector[j].update(t);
-        m_fishVector[j].ctm = unmarshalMat4(client.VFetch());
-      
+        m_fishVector[j].moveForward();
+        m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+        m_fishVector[j].update(t);
         if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
             m_fishVector[j].changeColor();
         }
         m_fishVector[j].render(m_shader,renderData.globalData);
     }
-    glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
-    // client.VUpdate(marshalMat4(viewMatrix));
+
+    PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     PaintGLHelper::setupLights(m_shader, renderData.lights);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
     PaintGLHelper::renderCoral(m_shader, coral_data, renderData);
@@ -271,38 +262,6 @@ void Realtime::paintGL() {
     glm::vec3 position = glm::vec3(camera.pos);
     glm::vec3 look = glm::normalize(glm::vec3(camera.look));
     glm::vec3 up = glm::normalize(glm::vec3(camera.up));
-
-    m_fishingRod.setBasePosition(position+look+glm::normalize(glm::cross(look,up))*0.5f-up*1.5f);
-
-    if (m_mouseDown && cooldownTime<0.01) {
-        isRetracting = false;
-        pressDuration = std::min(pressDuration + 0.05f, 1.0f); // Limit to max 1.0f
-        m_fishingRod.drawFishingRodBack(pressDuration,glm::normalize(glm::cross(look,up)));
-    } else if (pressDuration > 0) {
-        isThrowing = true;
-        cooldownTime = 3.0f * (1.0f - 0.5f*pressDuration);
-        // pressDuration = 0.0f; // Reset press duration
-    }
-
-    if (isThrowing) {
-        m_fishingRod.drawFishingRodForward(f,glm::normalize(glm::cross(look,up)),(look*10.f+position));
-        f += (glm::pow(2.f,1.5f*1.5f*pressDuration*pressDuration)/5.f-0.19f);
-        if (f > 30.f*pressDuration*pressDuration) {
-
-            isThrowing = false;
-            f = 0.0f;
-            isRetracting = true;
-            pressDuration = 0.0f;
-        }
-    }
-
-    if (isRetracting){
-        m_fishingRod.retraveLine(glm::normalize(glm::cross(look,up)));
-    }
-
-    if (cooldownTime > 0.0f) {
-        cooldownTime -= 0.02f;
-    }
 
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
