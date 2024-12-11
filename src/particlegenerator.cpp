@@ -28,7 +28,8 @@ void ParticleGenerator::updateParticles(float deltaTime) {
 
             particle.Position += particle.Velocity * deltaTime;
             particle.Velocity *= 0.95f; // Decelerate particles (if desired)
-
+        }
+        else {
             // If the particle is dead, start the cooldown
             float coolDown = 1.f;
             if (particle.CooldownTime < coolDown) {
@@ -52,23 +53,14 @@ void ParticleGenerator::initHelper(Particle &particle) {
 
         float speed = static_cast<float>(rand() % 100) / 10.0f + 5.0f; // Random speed between 5 and 15
         particle.Velocity = glm::vec3(x, y, z) * speed;
-        particle.Color = glm::vec4(1.f, 0.7f, 0.0f, 1.0f);
+//        particle.Color = glm::vec4(1.f, 0.3f, 0.0f, 1.0f);
+        float r = 1.0f;
+        float g = 0.3f + static_cast<float>(rand()) / RAND_MAX * 0.4f;
+        float b = 0.0f + static_cast<float>(rand()) / RAND_MAX * 0.3f;
+        particle.Color = glm::vec4(r, g, b, 1.0f);
+
         particle.Life = 2;
         particle.CooldownTime = 0.0f;
-//    if(m_type == GeneratorType::FLARE){
-//        particle.Position = glm::vec3(generatorPosition.x, generatorPosition.y, generatorPosition.z);
-
-//        // FLARE particles start with a small random velocity
-//        particle.Velocity = glm::vec3(
-//            (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 0.5f, // Small X variation
-//            (static_cast<float>(rand()) / RAND_MAX) * 2.0f,        // Strong upward Y velocity
-//            (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 0.5f  // Small Z variation
-//        );
-
-//        particle.Color = glm::vec4(1.f, 0.7f, 0.0f, 1.0f);
-//        particle.Life = static_cast<float>(rand()) / RAND_MAX * 5.0f;
-//        particle.CooldownTime = 0.0f;
-//    }
 }
 
 void ParticleGenerator::initParticles() {

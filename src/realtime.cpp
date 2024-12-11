@@ -276,6 +276,8 @@ void Realtime::paintGL() {
             if(Player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();
+
+
                 }
             }
             PaintGLHelper::renderFish(m_shader, m_fishVector[j], renderData);
@@ -544,7 +546,7 @@ void Realtime::timerEvent(QTimerEvent *event) {
 
     //update particles here
     generator.updateParticles(deltaTime);
-  
+
     // Clamp position to stay within the 10x10x10 cube
     const float minBound = -15.0f;
     const float maxBound = 15.0f;
