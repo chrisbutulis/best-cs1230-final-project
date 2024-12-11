@@ -20,6 +20,7 @@
 #include "utils/utils.h"
 #include "timer.h"
 #include <QPainter>
+#include <QOpenGLPaintDevice>
 
 
 // ================== Project 5: Lights, Camera
@@ -331,12 +332,19 @@ void Realtime::paintGL() {
     glUseProgram(0);
 
 
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::TextAntialiasing); // Enable text antialiasing
+    // Release OpenGL context for QPainter
+    QOpenGLPaintDevice device(this->size());
+    QPainter painter(&device);
+    painter.setRenderHint(QPainter::TextAntialiasing);
     painter.setPen(Qt::white);
     painter.setFont(QFont("Arial", 16));
-    painter.drawText(10, 30, "Hello, OpenGL!"); // Position: (10, 30)
+    painter.drawText(10, 30, "Hello, OpenGL!");
     painter.end();
+    // glDisable(GL_BLEND); // Disable blending if not required
+    glEnable(GL_DEPTH_TEST); // Ensure depth testing is enabled
+
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
 }
 
