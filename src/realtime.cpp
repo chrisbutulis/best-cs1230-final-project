@@ -18,6 +18,7 @@
 #include "utils/paintglhelper.h"
 #include "utils/networksclient.h"
 #include "utils/utils.h"
+#include "timer.h"
 
 // ================== Project 5: Lights, Camera
 
@@ -158,7 +159,7 @@ void Realtime::initializeGL() {
     // Shader setup (DO NOT EDIT)
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
-
+    m_text_overlay = ShaderLoader::createShaderProgram(":/resources/shaders/textOverlay.vert", ":/resources/shaders/textOverlay.frag");
     TerrainGenerator generator;
     coral_data = generator.generateCoralClusters();
 
@@ -208,6 +209,16 @@ void Realtime::initializeGL() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // Initialize Timer
+    FT_Library ft;
+    FT_Face face;
+    tmr.initFreeType(ft, face, fontPath);
+    glm::mat4 projection = glm::ortho(0.0f, float(m_screen_width), 0.0f, float(m_screen_height));
+    glUseProgram(m_text_overlay);
+    glUniform1i(glGetUniformLocation(m_text_overlay, "s2D"), 0);
+    glUniformMatrix4fv(glGetUniformLocation(m_text_overlay, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    glUseProgram(0);
+
     makeFBO();
 
     fish opponent = fish(1);
@@ -256,7 +267,7 @@ void Realtime::paintGL() {
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
+    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));ww
     glUseProgram(m_shader);
 
     if(player.playerType == player::PlayerType::Fisherman) {
@@ -330,6 +341,10 @@ void Realtime::paintGL() {
     glViewport(0, 0, m_screen_width, m_screen_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
+    glUseProgram(m_text_overlay);
+
+    tmr.renderText(m_text_overlay, "T", 10.0f, 550.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    glUseProgram(0);
 }
 
 

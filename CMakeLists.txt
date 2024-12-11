@@ -19,9 +19,11 @@ find_package(Qt6 REQUIRED COMPONENTS Gui)
 find_package(Qt6 REQUIRED COMPONENTS OpenGL)
 find_package(Qt6 REQUIRED COMPONENTS OpenGLWidgets)
 find_package(Qt6 REQUIRED COMPONENTS Xml)
+find_package(Freetype REQUIRED)
 
 # Allows you to include files from within those directories, without prefixing their filepaths
 include_directories(src)
+include_directories(${FREETYPE_INCLUDE_DIRS})
 
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}
@@ -56,6 +58,7 @@ add_executable(${PROJECT_NAME}
     src/utils/utils.h src/utils/utils.cpp
     src/player.h
     src/player.cpp
+    src/timer.h src/timer.cpp
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
@@ -95,6 +98,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/default.vert
         resources/shaders/postP.frag
         resources/shaders/postP.vert
+        resources/shaders/textOverlay.frag
+        resources/shaders/textOverlay.vert
         scenes/fish_game.json
         src/models/3d-models/brain_coral.glb
         src/models/3d-models/tall_coral.glb
