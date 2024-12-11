@@ -623,7 +623,9 @@ std::vector<glm::mat4> Realtime::generateRandomTransforms(size_t size) {
     return transforms;
 }
 
-
+float rot = 0;
+bool neg = true;
+float transl = 0;
 void Realtime::updateFishAnimations(float deltaTime) {
     //for each fish in m_fishVector
         //(fish has a model member variable and a current time member variable)
@@ -633,26 +635,60 @@ void Realtime::updateFishAnimations(float deltaTime) {
         //call modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
     // std::cout <<"num fish "<<m_fishVector.size()<<std::endl;
     for(fish& fish : m_fishVector) {
-        int animationIndex = 1;
-        float c = fish.currentTime;
+        int animationIndex = 0;
+        // float c = fish.currentTime;
         // std::vector<glm::mat4> copy = fish.globalTransforms;
-        std::vector<float> copy = fish.fishData;
+        // std::vector<float> copy = fish.fishData;
+
+        fish.globalTransforms = std::vector<glm::mat4>(fish.model.nodes.size(), glm::mat4(1.0f));
+
         modelloader::UpdateAnimation(fish.currentTime, deltaTime, fish.model, fish.model.animations[animationIndex]);
-        c = fish.currentTime;
-        modelloader::ApplyAnimations(fish.model, fish.currentTime, fish.globalTransforms, animationIndex);
+        // c = fish.currentTime;
+        // std::cout<<c<<std::endl;
+
+
+        // modelloader::ApplyAnimations(fish.model, fish.currentTime, fish.globalTransforms, animationIndex);
+
+        float angleW = 15.f;
+        float angleStep = 1.f;
+        float translStep = .008f;
+        if(neg) {
+            rot -=glm::radians(angleStep);
+            transl -= translStep;
+            if(rot < -glm::radians(angleW)) {
+                rot = -glm::radians(angleW);
+                neg = false;
+            }
+        } else {
+            rot +=glm::radians(angleStep);
+            transl += translStep;
+            if(rot > glm::radians(angleW)) {
+                rot = glm::radians(angleW);
+                neg = true;
+            }
+        }
+        for(glm::mat4& m:fish.globalTransforms) {
+            m = glm::rotate(m, rot, glm::cross(fish.look,fish.up));
+            m += glm::vec4(transl*glm::normalize(fish.look),0.0);
+        }
+
+
         // std::cout<<(AreMatrixListsEqual(copy, fish.globalTransforms))<<std::endl;
         fish.fishData = modelloader::LoadVerticesNormals(fish.model, fish.globalTransforms);
         // std::cout<<floatVecEquality(copy, fish.fishData)<<std::endl;
+
         modelloader::updateVBO(fish.vbo, fish.fishData);
 
-
-
+        // glFinish();
         // std::vector<glm::mat4> t1 = generateRandomTransforms(size_t(fish.fishData.size()));
-        // std::vector<glm::mat4> t2 = generateRandomTransforms(size_t(fish.fishData.size()));
-        // if(!AreMatrixListsEqual(t1,t2)) {
+        // // std::vector<glm::mat4> t2 = generateRandomTransforms(size_t(fish.fishData.size()));
+        // // if(!AreMatrixListsEqual(t1,t2)) {
         //     std::vector<float> c1 = modelloader::LoadVerticesNormals(fish.model, t1);
-        //     std::vector<float> c2 = modelloader::LoadVerticesNormals(fish.model, t2);
-        //     std::cout<<floatVecEquality(c1,c2)<<std::endl;
-        // }
+        // //     std::vector<float> c2 = modelloader::LoadVerticesNormals(fish.model, t2);
+        // //     std::cout<<floatVecEquality(c1,c2)<<std::endl;
+        // // }
+
+        // modelloader::updateVBO(fish.vbo, c1);
+
     }
 }

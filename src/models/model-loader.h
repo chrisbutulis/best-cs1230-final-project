@@ -28,8 +28,13 @@ public:
     static void ApplyAnimations(const tinygltf::Model &model, float timeStep, std::vector<glm::mat4> &globalTransforms, int animationIndex);
     static void UpdateAnimation(float &currentTime, float deltaTime, const tinygltf::Model &model, const tinygltf::Animation &animation);
 
-private:
+
     static glm::vec3 InterpolateTranslation(const tinygltf::AnimationSampler &sampler, float timeStep, const tinygltf::Model &model);
     static glm::quat InterpolateRotation(const tinygltf::AnimationSampler &sampler, float timeStep, const tinygltf::Model &model);
     static glm::vec3 InterpolateScale(const tinygltf::AnimationSampler &sampler, float timeStep, const tinygltf::Model &model);
+
+    static void InterpolateAnimation(glm::mat4 &transform, const tinygltf::AnimationChannel &channel,
+                                     const tinygltf::AnimationSampler &sampler, float timeStep);
+    static void ApplyAnimationToNode(const tinygltf::Model &model, int nodeIndex, const glm::mat4 &parentTransform,
+                         std::vector<glm::mat4> &globalTransforms, const tinygltf::Animation &animation, float timeStep);
 };

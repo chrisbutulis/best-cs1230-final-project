@@ -77,7 +77,7 @@ void ComputeNodeTransforms(const tinygltf::Model &model, int nodeIndex, const gl
     }
 
     // Combine with parent transform
-    globalTransforms[nodeIndex] = parentTransform * localTransform;
+    globalTransforms[nodeIndex] =  localTransform*parentTransform; //if you switch this order, the small fish dis/reappears
 
     // Recursively apply to child nodes
     for (int child : node.children) {
@@ -167,8 +167,7 @@ std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model, std:
         globalTransforms = std::vector<glm::mat4>(model.nodes.size(), glm::mat4(1.0f));
         std::cout<<"empty animations"<<std::endl;
     } else {
-        // assume animation has already been applied
-
+        // assume animation has already been applied to globalTransforms
     }
     //else (if animations), init to result of apply animations helper
 
@@ -176,6 +175,8 @@ std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model, std:
     for (int rootNode : model.scenes[model.defaultScene >= 0 ? model.defaultScene : 0].nodes) {
         ComputeNodeTransforms(model, rootNode, globalTransforms[rootNode], globalTransforms);
     }
+    //this makes the fish big
+    // ComputeNodeTransforms(model, 3, globalTransforms[3], globalTransforms);
 
     // Process vertices and normals
     std::vector<float> finalVertices;
@@ -244,6 +245,8 @@ std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model) {
     for (int rootNode : model.scenes[model.defaultScene >= 0 ? model.defaultScene : 0].nodes) {
         ComputeNodeTransforms(model, rootNode, glm::mat4(1.0f), globalTransforms);
     }
+
+    // ApplyAnimations(model,1.9f, globalTransforms, 1);
 
     // Process vertices and normals
     std::vector<float> finalVertices;
@@ -316,6 +319,8 @@ void modelloader::UpdateAnimation(float &currentTime, float deltaTime, const tin
     float endTime = timeAccessor.maxValues[0];   // Maximum time in the accessor
     float duration = endTime - startTime;
 
+    // std::cout << duration << std::endl;
+
     // Update the current time
     currentTime += deltaTime;
 
@@ -341,7 +346,6 @@ void modelloader::ApplyAnimations(const tinygltf::Model &model, float timeStep,
         std::cout<<"global transforms reinit"<<std::endl;
         globalTransforms.assign(model.nodes.size(), glm::mat4(1.0f));
     }
-
 
     const auto &animation = model.animations[animationIndex];
     if(animation.channels.empty()) {
@@ -443,5 +447,3 @@ glm::vec3 modelloader::InterpolateScale(const tinygltf::AnimationSampler &sample
     float t = (timeStep - times[idx1]) / (times[idx2] - times[idx1]);
     return glm::mix(values[idx1], values[idx2], t);
 }
-
-
