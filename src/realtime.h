@@ -17,7 +17,6 @@
 #include <QTimer>
 #include "utils/sceneparser.h"
 #include "FishingRod.h"
-#include "timer.h"
 
 class Realtime : public QOpenGLWidget
 {
@@ -68,7 +67,6 @@ private:
     std::vector<coral*> coral_data;
 
     // Timer
-    timer tmr;
     const char* fontPath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/src/fonts/timer_font.ttf";
 
     // Gameplay

@@ -18,7 +18,6 @@
 #include "utils/paintglhelper.h"
 #include "utils/networksclient.h"
 #include "utils/utils.h"
-#include "timer.h"
 #include <QPainter>
 #include <QOpenGLPaintDevice>
 
@@ -209,7 +208,7 @@ void Realtime::initializeGL() {
 
     fish opponent = fish(1);
 
-    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenes/fish_game.json";
+    settings.sceneFilePath = "../../scenes/fish_game.json";
     sceneChanged();
     settingsChanged();
     int playerNum = client.VJoin();
