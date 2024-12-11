@@ -68,7 +68,7 @@ float kernel[9] = {
 
     GLuint quadVAO, quadVBO;
 
-    ParticleGenerator generator;
+    ParticleGenerator generator(ParticleGenerator::GeneratorType::FIREWORKS);
 
 void Realtime::finish() {
     killTimer(m_timer);
@@ -208,8 +208,6 @@ void Realtime::initializeGL() {
     settings.sceneFilePath = "/home/dhu34/graphics/best-cs1230-final-project/scenefiles/action/required/movement/chess.json";
     sceneChanged();
     settingsChanged();
-
-//    generator.initParticles();
 }
 
 void paintTexture(GLuint texture, bool postP,bool postP2){
@@ -293,15 +291,15 @@ void Realtime::paintGL() {
         cooldownTime -= 0.02f; // Decrease cooldown timer (assuming ~60 FPS, adjust accordingly)
     }
 
+    //Drawing particles here
+    glUseProgram(m_particle_shader);
+    PaintGLHelper::setupMatrices(m_particle_shader, m_view, renderData.cameraData);
+    generator.drawParticles(m_fbo, m_particle_shader);
+
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
-
-    //draw particles here
-    glUseProgram(m_particle_shader);
-    PaintGLHelper::setupMatrices(m_particle_shader, m_view, renderData.cameraData);
-    generator.drawParticles(m_fullscreen_vao, m_particle_shader);
 
     glBindVertexArray(0);
     glUseProgram(0);

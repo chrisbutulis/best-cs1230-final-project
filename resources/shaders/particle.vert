@@ -7,5 +7,6 @@ uniform mat4 viewMatrix;
 
 void main() {
     gl_Position = projMatrix * viewMatrix * vec4(particlePosition, 1.0);
+    gl_PointSize = 2;
 //    gl_Position = vec4(particlePosition, 1.0);
 }
