@@ -4,7 +4,7 @@
 #include "shapes/Cube.h"
 #include "shapes/Cylinder.h"
 #include "shapes/Sphere.h"
-#include "shapes/cone.h"
+#include "shapes/Cone.h"
 #include "settings.h"
 #include <chrono>
 #include <iostream>

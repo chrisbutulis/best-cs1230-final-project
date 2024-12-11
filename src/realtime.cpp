@@ -12,15 +12,15 @@
 #include <QKeyEvent>
 #include <iostream>
 #include "settings.h"
-#include "shapes/cone.h"
-#include "shapes/cylinder.h"
+#include "shapes/Cone.h"
+#include "shapes/Cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
+#include "particlegenerator.h"
 #include "utils/networksclient.h"
 #include "utils/utils.h"
 #include <QPainter>
 #include <QOpenGLPaintDevice>
-
 
 // ================== Project 5: Lights, Camera
 
@@ -49,7 +49,7 @@ int m_defaultFBO = 2;
 float f = 0.f;
 GLuint m_fbo_texture;
 GLuint m_fbo_renderbuffer;
-GLuint m_fbo, m_texture_shader;
+GLuint m_fbo, m_texture_shader, m_particle_shader;
 int m_screen_width;
 int m_screen_height;
 int m_fbo_width;
@@ -71,7 +71,9 @@ float kernel[9] = {
     1.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f
 };
 
-GLuint quadVAO, quadVBO;
+    GLuint quadVAO, quadVBO;
+    ParticleGenerator generator(ParticleGenerator::GeneratorType::FIREWORKS);
+
 void Realtime::finish() {
     killTimer(m_timer);
     this->makeCurrent();
@@ -131,9 +133,7 @@ void makeFBO(){
 
     // Task 22: Unbind the FBO
     glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
-
 }
-
 
 NetworkClient client("10.37.55.169", 9269);
 void Realtime::initializeGL() {
@@ -161,7 +161,7 @@ void Realtime::initializeGL() {
     // Shader setup (DO NOT EDIT)
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
-    m_text_overlay = ShaderLoader::createShaderProgram(":/resources/shaders/textOverlay.vert", ":/resources/shaders/textOverlay.frag");
+    m_particle_shader = ShaderLoader::createShaderProgram(":/resources/shaders/particle.vert", ":/resources/shaders/particle.frag");
     TerrainGenerator generator;
     coral_data = generator.generateCoralClusters();
 
@@ -199,7 +199,6 @@ void Realtime::initializeGL() {
     // Set the background color to a deep underwater blue
     glClearColor(0.0f, 0.1f, 0.3f, 1.0f);
 
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
@@ -207,7 +206,6 @@ void Realtime::initializeGL() {
     makeFBO();
 
     fish opponent = fish(1);
-
     settings.sceneFilePath = "../../scenes/fish_game.json";
     sceneChanged();
     settingsChanged();
@@ -248,6 +246,7 @@ bool isRetracting = false;
 float t = 0;
 float cooldownTime = 0.0f;
 void Realtime::paintGL() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     t+=0.01;
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
@@ -322,12 +321,15 @@ void Realtime::paintGL() {
         cooldownTime -= 0.02f;
     }
 
+    //Drawing particles here
+    glUseProgram(m_particle_shader);
+    PaintGLHelper::setupMatrices(m_particle_shader, m_view, renderData.cameraData);
+    generator.drawParticles(m_fbo, m_particle_shader);
+
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
-
-
     glUseProgram(0);
 
 
@@ -347,7 +349,9 @@ void Realtime::paintGL() {
 
 }
 
-
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
 
 
 void Realtime::resizeGL(int w, int h) {
@@ -479,7 +483,6 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
 
         // Update the camera's look and up vectors
         camera.look = glm::normalize(glm::vec4(look, 0.0f));
-
         update(); // asks for a PaintGL() call to occur
     }
 }
@@ -542,6 +545,9 @@ void Realtime::timerEvent(QTimerEvent *event) {
         verticalVelocity = 0.0f; // Stop vertical motion
     }
 
+    //update particles here
+    generator.updateParticles(deltaTime);
+  
     // Clamp position to stay within the 10x10x10 cube
     const float minBound = -15.0f;
     const float maxBound = 15.0f;

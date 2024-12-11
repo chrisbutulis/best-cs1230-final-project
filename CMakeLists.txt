@@ -50,6 +50,7 @@ add_executable(${PROJECT_NAME}
     src/fishingrod.h src/fishingrod.cpp
     src/fishingline.h src/fishingline.cpp
     src/fish.h src/fish.cpp
+    src/particlegenerator.h src/particlegenerator.cpp
     src/models/model-loader.cpp
     src/models/model-loader.h
     src/utils/networksclient.h src/utils/networksclient.cpp
@@ -63,7 +64,7 @@ add_subdirectory(glm)
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`
 add_library(StaticGLEW STATIC glew/src/glew.c
-    src/shapes/cone.h src/shapes/cone.cpp
+    src/shapes/Cone.h src/shapes/Cone.cpp)
     lib/tiny_gltf.h
     lib/stb_image.h
     lib/tiny_gltf.h lib/tiny_gltf.cpp
@@ -95,6 +96,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/default.vert
         resources/shaders/postP.frag
         resources/shaders/postP.vert
+        resources/shaders/particle.frag
+        resources/shaders/particle.vert
         resources/shaders/textOverlay.frag
         resources/shaders/textOverlay.vert
         scenes/fish_game.json
