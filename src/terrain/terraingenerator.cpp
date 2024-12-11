@@ -38,7 +38,7 @@ glm::mat4 getCTM(float xTransform, float zTransform) {
     ctm = glm::rotate(ctm, tiltZ, glm::vec3(0.0f, 0.0f, 1.0f));
 
     // Scaling
-    ctm = glm::scale(ctm, glm::vec3(2.0f, 2.0f, 2.0f));
+    ctm = glm::scale(ctm, glm::vec3(5.0f, 5.0f, 5.0f));
 
     return ctm;
 }
@@ -211,6 +211,7 @@ std::vector<coral*> TerrainGenerator::generateCoralClusters() {
             TallCoral* toAdd = new TallCoral();
             toAdd->coralData = tallCoralData;
             toAdd->ctm = getCTM(sample.x, sample.y);
+            toAdd->ctm = glm::scale(toAdd->ctm, glm::vec3(5.0f, 5.0f, 5.0f));
             toReturn.push_back(toAdd);
 
             modelloader::loadArrayToVBO(toAdd->vbo, toAdd->vao, toAdd->coralData);
