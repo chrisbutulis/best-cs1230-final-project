@@ -43,12 +43,30 @@ tinygltf::Model modelloader::loadModel(std::string filePath) {
 }
 
 // Compute global transforms recursively
+// void ComputeNodeTransforms(const tinygltf::Model &model, int nodeIndex, const glm::mat4 &parentTransform, std::vector<glm::mat4> &globalTransforms) {
+//     const tinygltf::Node &node = model.nodes[nodeIndex];
+//     glm::mat4 localTransform = glm::mat4(1.0f);
+
+//     // Apply transformations if available
+//     if (node.matrix.size() == 16) {
+//         localTransform = glm::make_mat4(node.matrix.data());
+//     } else {
+//         glm::vec3 translation = node.translation.empty() ? glm::vec3(0.0f) : glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
+//         glm::quat rotation = node.rotation.empty() ? glm::quat(1.0f, 0.0f, 0.0f, 0.0f) : glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+//         glm::vec3 scale = node.scale.empty() ? glm::vec3(1.0f) : glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
+
+//         localTransform = glm::translate(glm::mat4(1.0f), translation) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
+//     }
+
+//     globalTransforms[nodeIndex] = parentTransform * localTransform;
+//     for (int child : node.children) ComputeNodeTransforms(model, child, globalTransforms[nodeIndex], globalTransforms);
+// }
 void ComputeNodeTransforms(const tinygltf::Model &model, int nodeIndex, const glm::mat4 &parentTransform, std::vector<glm::mat4> &globalTransforms) {
     const tinygltf::Node &node = model.nodes[nodeIndex];
     glm::mat4 localTransform = glm::mat4(1.0f);
 
     // Apply transformations if available
-    if (node.matrix.size() == 16) {
+    if (!node.matrix.empty()) {
         localTransform = glm::make_mat4(node.matrix.data());
     } else {
         glm::vec3 translation = node.translation.empty() ? glm::vec3(0.0f) : glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
@@ -58,9 +76,15 @@ void ComputeNodeTransforms(const tinygltf::Model &model, int nodeIndex, const gl
         localTransform = glm::translate(glm::mat4(1.0f), translation) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
     }
 
+    // Combine with parent transform
     globalTransforms[nodeIndex] = parentTransform * localTransform;
-    for (int child : node.children) ComputeNodeTransforms(model, child, globalTransforms[nodeIndex], globalTransforms);
+
+    // Recursively apply to child nodes
+    for (int child : node.children) {
+        ComputeNodeTransforms(model, child, globalTransforms[nodeIndex], globalTransforms);
+    }
 }
+
 
 void modelloader::loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> data) {
     // Generate and bind VBO
@@ -141,14 +165,16 @@ std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model, std:
     // std::vector<glm::mat4>
     if(model.animations.empty()) {
         globalTransforms = std::vector<glm::mat4>(model.nodes.size(), glm::mat4(1.0f));
+        std::cout<<"empty animations"<<std::endl;
     } else {
         // assume animation has already been applied
+
     }
     //else (if animations), init to result of apply animations helper
 
 
     for (int rootNode : model.scenes[model.defaultScene >= 0 ? model.defaultScene : 0].nodes) {
-        ComputeNodeTransforms(model, rootNode, glm::mat4(1.0f), globalTransforms);
+        ComputeNodeTransforms(model, rootNode, globalTransforms[rootNode], globalTransforms);
     }
 
     // Process vertices and normals
@@ -301,26 +327,39 @@ void modelloader::UpdateAnimation(float &currentTime, float deltaTime, const tin
 
 void modelloader::ApplyAnimations(const tinygltf::Model &model, float timeStep,
                                   std::vector<glm::mat4> &globalTransforms, int animationIndex) {
+
+    if(model.animations.empty()) {
+        std::cout<<"animations empty"<<std::endl;
+    }
+
     if (animationIndex < 0 || animationIndex >= model.animations.size()) {
         std::cerr << "Invalid animation index: " << animationIndex << std::endl;
         return;
     }
 
-    if (globalTransforms.size() != model.nodes.size()) {
+    if (globalTransforms.size() < model.nodes.size()) {
+        std::cout<<"global transforms reinit"<<std::endl;
         globalTransforms.assign(model.nodes.size(), glm::mat4(1.0f));
     }
 
 
     const auto &animation = model.animations[animationIndex];
+    if(animation.channels.empty()) {
+        std::cout<<"no channels"<<std::endl;
+    }
 
     for (const auto &channel : animation.channels) {
         const auto &sampler = animation.samplers[channel.sampler];
         int nodeIndex = channel.target_node;
-        if (nodeIndex < 0 || nodeIndex >= globalTransforms.size()) continue;
+        if (nodeIndex < 0 || nodeIndex >= globalTransforms.size()) {
+            std::cerr << "Invalid node index in animation channel: " << nodeIndex << std::endl;
+            continue;
+        }
+
 
         // Initialize default transform components
         glm::vec3 translation(0.0f);
-        glm::quat rotation(1.0f, 0.0f, 0.0f, 0.0f); // Identity quaternion
+        glm::quat rotation(0.0f, 0.0f, 0.0f, 1.0f); // Identity quaternion
         glm::vec3 scale(1.0f);
 
         // Compute interpolated value based on the target path
@@ -338,7 +377,7 @@ void modelloader::ApplyAnimations(const tinygltf::Model &model, float timeStep,
                                    glm::scale(glm::mat4(1.0f), scale);
 
         // Combine with the global transforms
-        globalTransforms[nodeIndex] = localTransform * globalTransforms[nodeIndex];
+        globalTransforms[nodeIndex] = globalTransforms[nodeIndex] * localTransform;
     }
 }
 

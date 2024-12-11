@@ -572,6 +572,58 @@ void Realtime::timerEvent(QTimerEvent *event) {
     update(); // Requests a PaintGL() call to occur
 }
 
+// Comparison with a tolerance
+bool AreMatricesEqual(const glm::mat4 &mat1, const glm::mat4 &mat2, float epsilon = 1e-6f) {
+    for (int i = 0; i < 16; ++i) {
+        if (std::abs(glm::value_ptr(mat1)[i] - glm::value_ptr(mat2)[i]) > epsilon) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool AreMatrixListsEqual(std::vector<glm::mat4> &l1, std::vector<glm::mat4> &l2) {
+    for(int i = 0; i < l1.size(); i++) {
+        if(!(AreMatricesEqual(l1[i], l2[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool floatVecEquality(std::vector<float> &l1, std::vector<float> &l2) {
+    for(int i = 0; i < l1.size(); i++) {
+        if(l1[i]!= l2[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::vector<glm::mat4> Realtime::generateRandomTransforms(size_t size) {
+    std::vector<glm::mat4> transforms(size);
+
+    for (size_t i = 0; i < size; ++i) {
+        glm::vec3 randomTranslation = glm::vec3(rand() / float(RAND_MAX) * 2.0f - 1.0f,
+                                                rand() / float(RAND_MAX) * 2.0f - 1.0f,
+                                                rand() / float(RAND_MAX) * 2.0f - 1.0f);
+
+        float angle = rand() / float(RAND_MAX) * glm::two_pi<float>();
+        glm::quat randomRotation = glm::angleAxis(angle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        glm::vec3 randomScale = glm::vec3(rand() / float(RAND_MAX) * 1.5f + 0.5f);
+
+        glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), randomTranslation);
+        glm::mat4 rotationMat = glm::mat4_cast(randomRotation);
+        glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), randomScale);
+
+        transforms[i] = translationMat * rotationMat * scaleMat;
+    }
+
+    return transforms;
+}
+
+
 void Realtime::updateFishAnimations(float deltaTime) {
     //for each fish in m_fishVector
         //(fish has a model member variable and a current time member variable)
@@ -581,10 +633,26 @@ void Realtime::updateFishAnimations(float deltaTime) {
         //call modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
     // std::cout <<"num fish "<<m_fishVector.size()<<std::endl;
     for(fish& fish : m_fishVector) {
-        int animationIndex = 0;
+        int animationIndex = 1;
+        float c = fish.currentTime;
+        // std::vector<glm::mat4> copy = fish.globalTransforms;
+        std::vector<float> copy = fish.fishData;
         modelloader::UpdateAnimation(fish.currentTime, deltaTime, fish.model, fish.model.animations[animationIndex]);
+        c = fish.currentTime;
         modelloader::ApplyAnimations(fish.model, fish.currentTime, fish.globalTransforms, animationIndex);
+        // std::cout<<(AreMatrixListsEqual(copy, fish.globalTransforms))<<std::endl;
         fish.fishData = modelloader::LoadVerticesNormals(fish.model, fish.globalTransforms);
+        // std::cout<<floatVecEquality(copy, fish.fishData)<<std::endl;
         modelloader::updateVBO(fish.vbo, fish.fishData);
+
+
+
+        // std::vector<glm::mat4> t1 = generateRandomTransforms(size_t(fish.fishData.size()));
+        // std::vector<glm::mat4> t2 = generateRandomTransforms(size_t(fish.fishData.size()));
+        // if(!AreMatrixListsEqual(t1,t2)) {
+        //     std::vector<float> c1 = modelloader::LoadVerticesNormals(fish.model, t1);
+        //     std::vector<float> c2 = modelloader::LoadVerticesNormals(fish.model, t2);
+        //     std::cout<<floatVecEquality(c1,c2)<<std::endl;
+        // }
     }
 }

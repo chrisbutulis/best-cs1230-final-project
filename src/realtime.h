@@ -73,4 +73,6 @@ private:
     RenderData renderData;
 
     void updateFishAnimations(float deltaTime);
+
+    std::vector<glm::mat4> generateRandomTransforms(size_t size);
 };
