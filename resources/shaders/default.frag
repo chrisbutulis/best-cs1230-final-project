@@ -94,6 +94,5 @@ void main() {
     }
 
     // Final fragment color
-    fragColor = accumulatedColor;
-
+    fragColor = vec4(accumulatedColor.r, accumulatedColor.g, accumulatedColor.b, 1.0);
 }

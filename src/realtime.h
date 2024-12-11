@@ -16,7 +16,7 @@
 #include <QTime>
 #include <QTimer>
 #include "utils/sceneparser.h"
-#include "FishingRod.h"
+#include "fishingrod.h"
 
 class Realtime : public QOpenGLWidget
 {
@@ -57,6 +57,7 @@ private:
     double m_devicePixelRatio;
     std::vector<fish> m_fishVector;
     GLuint m_shader; // Stores id of shader program
+    GLuint m_text_overlay;
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
 
@@ -65,9 +66,12 @@ private:
     GLuint coral_vbo;
     std::vector<coral*> coral_data;
 
+    // Timer
+    const char* fontPath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/src/fonts/timer_font.ttf";
+
     // Gameplay
-    player player;
-    // fish *p_opponent;
+
+    player Player;
 
     glm::mat4 m_view;
     RenderData renderData;

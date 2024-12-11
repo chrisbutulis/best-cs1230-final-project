@@ -1,4 +1,4 @@
-#include "FishingLine.h"
+#include "fishingline.h"
 
 FishingLine::FishingLine(int segments, float radius, float length)
     : m_segments(segments), m_radius(radius), m_segmentLength(length/segments), m_segmentsData(segments) {}
