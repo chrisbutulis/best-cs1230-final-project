@@ -75,7 +75,6 @@ void modelloader::loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> da
     // Correct buffer size and upload data
     glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_DYNAMIC_DRAW);
 
-
     // Generate and bind VAO
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -142,23 +141,9 @@ int modelloader::LoadGLB(const std::string &filename, tinygltf::Model &model) {
 
 std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model, std::vector<glm::mat4> &globalTransforms) {
     // Compute global transforms
-
-    //if no animations
-    // std::vector<glm::mat4>
-    if(model.animations.empty()) {
-        globalTransforms = std::vector<glm::mat4>(model.nodes.size(), glm::mat4(1.0f));
-        std::cout<<"empty animations"<<std::endl;
-    } else {
-        // assume animation has already been applied to globalTransforms
-    }
-    //else (if animations), init to result of apply animations helper
-
-
     for (int rootNode : model.scenes[model.defaultScene >= 0 ? model.defaultScene : 0].nodes) {
         ComputeNodeTransforms(model, rootNode, globalTransforms[rootNode], globalTransforms);
     }
-    //this makes the fish big
-    // ComputeNodeTransforms(model, 3, globalTransforms[3], globalTransforms);
 
     // Process vertices and normals
     std::vector<float> finalVertices;
@@ -223,12 +208,9 @@ std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model) {
     std::vector<glm::mat4> globalTransforms = std::vector<glm::mat4>(model.nodes.size(), glm::mat4(1.0f));
     //else (if animations), init to result of apply animations helper
 
-
     for (int rootNode : model.scenes[model.defaultScene >= 0 ? model.defaultScene : 0].nodes) {
         ComputeNodeTransforms(model, rootNode, glm::mat4(1.0f), globalTransforms);
     }
-
-    // ApplyAnimations(model,1.9f, globalTransforms, 1);
 
     // Process vertices and normals
     std::vector<float> finalVertices;
