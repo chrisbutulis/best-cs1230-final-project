@@ -57,6 +57,7 @@ add_executable(${PROJECT_NAME}
     src/utils/utils.h src/utils/utils.cpp
     src/player.h
     src/player.cpp
+    src/utils/serverupdate.h
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
