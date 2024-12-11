@@ -646,6 +646,9 @@ void Realtime::updateFishAnimations(float deltaTime) {
         // c = fish.currentTime;
         // std::cout<<c<<std::endl;
 
+        // for(tinygltf::Node& n: fish.model.nodes) {
+        //     std::cout<<n.name<<std::endl;
+        // }
 
         // modelloader::ApplyAnimations(fish.model, fish.currentTime, fish.globalTransforms, animationIndex);
 
@@ -667,10 +670,46 @@ void Realtime::updateFishAnimations(float deltaTime) {
                 neg = true;
             }
         }
+
+        // fish.globalTransforms[10] += glm::vec4(5*transl*glm::normalize(fish.look),0.0);
+
         for(glm::mat4& m:fish.globalTransforms) {
             m = glm::rotate(m, rot, glm::cross(fish.look,fish.up));
             m += glm::vec4(transl*glm::normalize(fish.look),0.0);
         }
+
+        // int index = 0;
+        // for (glm::mat4& m : fish.globalTransforms) {
+        //     if ((index >= 10 && index <= 12) || (index >= 46 && index <= 55)) { // Head and Gill nodes
+        //         m = glm::rotate(m, rot, glm::cross(fish.look, fish.up));
+        //         m += glm::vec4(transl * glm::normalize(fish.look), 0.0);
+        //     } else if ((index >= 13 && index <= 24) || (index >= 56 && index <= 67)) { // Tail and Spine nodes
+        //         m = glm::rotate(m, -rot, glm::cross(fish.look, fish.up));
+        //         m -= glm::vec4(transl * glm::normalize(fish.look), 0.0);
+        //     }
+        //     ++index;
+        // }
+
+        // float time = fish.currentTime; // Or your preferred method for getting elapsed time
+        // float waveAmplitude = 0.1f; // Adjust for how much the fish should bend
+        // float waveFrequency = 2.0f; // Adjust for wave speed
+
+        // for (size_t i = 0; i < fish.globalTransforms.size(); ++i) {
+        //     glm::mat4& m = fish.globalTransforms[i];
+
+        //     // Calculate the wave offset based on the node index and time
+        //     float waveOffset = waveAmplitude * sin(waveFrequency * time - i * 0.5f);
+
+        //     // Head and gill nodes
+        //     if ((i >= 10 && i <= 12) || (i >= 46 && i <= 48) || (i >= 6 && i <= 8) || (i >= 49 && i <= 55)) {
+        //         m = glm::rotate(m, waveOffset, glm::cross(fish.look, fish.up));
+        //     }
+        //     // Spine and tail nodes
+        //     else if ((i >= 13 && i <= 24) || (i >= 56 && i <= 67)) {
+        //         m = glm::rotate(m, -waveOffset, glm::cross(fish.look, fish.up));
+        //     }
+        // }
+
 
 
         // std::cout<<(AreMatrixListsEqual(copy, fish.globalTransforms))<<std::endl;
