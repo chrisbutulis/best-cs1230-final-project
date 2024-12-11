@@ -9,6 +9,7 @@ public:
     modelloader();
     static tinygltf::Model loadModel(std::string filePath);
     static void loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> data);
+    static void updateVBO(GLuint vbo, const std::vector<float>& data);
     static void renderModel(GLuint &shader, GLuint &vao, RenderData renderData, std::vector<float> data);
     // static std::vector<float> LoadGLBVerticesNormals(const std::string &filename);
 

@@ -565,15 +565,26 @@ void Realtime::timerEvent(QTimerEvent *event) {
 
     // Update camera position
     camera.pos = glm::vec4(newPos, 1.0f);
+
+    updateFishAnimations(deltaTime);
+
+
     update(); // Requests a PaintGL() call to occur
 }
 
-void updateFishAnimations() {
+void Realtime::updateFishAnimations(float deltaTime) {
     //for each fish in m_fishVector
         //(fish has a model member variable and a current time member variable)
         //updateanimation (use animation index 1)
         //apply animation to globalTransforms member in fish
         //call loadVerticesNormals and save it to fishData
         //call modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
-
+    // std::cout <<"num fish "<<m_fishVector.size()<<std::endl;
+    for(fish& fish : m_fishVector) {
+        int animationIndex = 0;
+        modelloader::UpdateAnimation(fish.currentTime, deltaTime, fish.model, fish.model.animations[animationIndex]);
+        modelloader::ApplyAnimations(fish.model, fish.currentTime, fish.globalTransforms, animationIndex);
+        fish.fishData = modelloader::LoadVerticesNormals(fish.model, fish.globalTransforms);
+        modelloader::updateVBO(fish.vbo, fish.fishData);
+    }
 }

@@ -24,7 +24,8 @@ void FishingRod::updatePosition(const glm::vec3& cameraPos, const glm::vec3& cam
 }
 
 bool FishingRod::collition(glm::vec3 pos) {
-    return glm::length(m_line.getlastElement()-pos) < 1.5f;
+    float rad = 1.5f;
+    return glm::length(m_line.getlastElement()-pos) < rad;
 }
 
 void FishingRod::setBasePosition(glm::vec3 pos) {

@@ -72,5 +72,5 @@ private:
     glm::mat4 m_view;
     RenderData renderData;
 
-    void updateFishAnimations();
+    void updateFishAnimations(float deltaTime);
 };

@@ -67,7 +67,7 @@ void modelloader::loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> da
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     // Correct buffer size and upload data
-    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_DYNAMIC_DRAW);
 
 
     // Generate and bind VAO
@@ -86,6 +86,12 @@ void modelloader::loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> da
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void modelloader::updateVBO(GLuint vbo, const std::vector<float>& data) {
+    // Update VBO with new data
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_DYNAMIC_DRAW); // Use GL_DYNAMIC_DRAW for frequent updates
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 void modelloader::renderModel(GLuint &shader, GLuint &terrain_vao, RenderData renderData, std::vector<float> data) {
     if(!renderData.shapes.empty()) {
         auto shape = renderData.shapes[0];
@@ -299,6 +305,11 @@ void modelloader::ApplyAnimations(const tinygltf::Model &model, float timeStep,
         std::cerr << "Invalid animation index: " << animationIndex << std::endl;
         return;
     }
+
+    if (globalTransforms.size() != model.nodes.size()) {
+        globalTransforms.assign(model.nodes.size(), glm::mat4(1.0f));
+    }
+
 
     const auto &animation = model.animations[animationIndex];
 
