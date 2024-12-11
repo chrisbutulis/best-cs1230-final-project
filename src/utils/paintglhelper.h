@@ -7,6 +7,7 @@ public:
     static glm::mat4 setupMatrices(GLuint shader, const glm::mat4& projMatrix, const SceneCameraData& cameraData);
     static void setupLights(GLuint shader, const std::vector<SceneLightData>& lights, player::PlayerType playerType);
     static void renderShapes(GLuint shader, const std::vector<RenderShapeData>& shapes, const SceneGlobalData& globalData);
+    static glm::mat4 calculateViewMatrix(const SceneCameraData &camera);
     static void renderCoral(GLuint shader, const std::vector<coral*> coralData, const RenderData& renderData);
     static void renderFish(GLuint shader, fish fish, const RenderData& renderData);
 private:

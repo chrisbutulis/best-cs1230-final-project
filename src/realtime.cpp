@@ -12,12 +12,15 @@
 #include <QKeyEvent>
 #include <iostream>
 #include "settings.h"
-#include "shapes/cone.h"
-#include "shapes/cylinder.h"
+#include "shapes/Cone.h"
+#include "shapes/Cylinder.h"
 #include "utils/openglhelper.h"
 #include "utils/paintglhelper.h"
+#include "particlegenerator.h"
 #include "utils/networksclient.h"
 #include "utils/utils.h"
+#include <QPainter>
+#include <QOpenGLPaintDevice>
 
 // ================== Project 5: Lights, Camera
 
@@ -46,7 +49,7 @@ int m_defaultFBO = 2;
 float f = 0.f;
 GLuint m_fbo_texture;
 GLuint m_fbo_renderbuffer;
-GLuint m_fbo, m_texture_shader;
+GLuint m_fbo, m_texture_shader, m_particle_shader;
 int m_screen_width;
 int m_screen_height;
 int m_fbo_width;
@@ -68,7 +71,9 @@ float kernel[9] = {
     1.0f / 16.0f, 2.0f / 16.0f, 1.0f / 16.0f
 };
 
-GLuint quadVAO, quadVBO;
+    GLuint quadVAO, quadVBO;
+    ParticleGenerator generator(ParticleGenerator::GeneratorType::FIREWORKS);
+
 void Realtime::finish() {
     killTimer(m_timer);
     this->makeCurrent();
@@ -137,11 +142,9 @@ void makeFBO(){
 
     // Task 22: Unbind the FBO
     glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
-
 }
 
-
-// NetworkClient client("127.0.0.1", 9269);
+NetworkClient client("10.37.55.169", 9269);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -167,7 +170,7 @@ void Realtime::initializeGL() {
     // Shader setup (DO NOT EDIT)
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
-
+    m_particle_shader = ShaderLoader::createShaderProgram(":/resources/shaders/particle.vert", ":/resources/shaders/particle.frag");
     TerrainGenerator generator;
     coral_data = generator.generateCoralClusters();
 
@@ -205,42 +208,34 @@ void Realtime::initializeGL() {
     // Set the background color to a deep underwater blue
     glClearColor(0.0f, 0.1f, 0.3f, 1.0f);
 
-    // Optional: Enable and configure fog for an underwater effect
-    glEnable(GL_FOG);
-    glFogi(GL_FOG_MODE, GL_EXP2); // Use exponential fog
-    GLfloat fogColor[4] = {0.0f, 0.4f, 0.7f, 1.0f}; // Match background color
-    glFogfv(GL_FOG_COLOR, fogColor);
-    glFogf(GL_FOG_DENSITY, 0.05f); // Adjust density for desired effect
-    glHint(GL_FOG_HINT, GL_NICEST); // Best quality fog
-
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
 
     makeFBO();
 
     fish opponent = fish(1);
-    // p_opponent = &opponent;
-    settings.sceneFilePath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/scenes/fish_game.json";
+
+    settings.sceneFilePath = "../../scenes/fish_game.json";
+
     sceneChanged();
     settingsChanged();
-    // int playerNum = client.VJoin();
-    int playerNum = 1;
-
+    int playerNum = client.VJoin();
+    
     if (playerNum<1) {
         std::cerr << "Failed to connect to the server." << std::endl;
     }
     if(playerNum == 1) {
-        player = {player::PlayerType::Fisherman};
-        // tinygltf::Model model;
-        modelloader::LoadGLB("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb", opponent.model);
+        Player = {player::PlayerType::Fisherman};
+        modelloader::LoadGLB("../../src/models/3d-models/trout.glb", opponent.model);
         opponent.globalTransforms = std::vector<glm::mat4>(opponent.model.nodes.size(), glm::mat4(1.0f));
         opponent.fishData = modelloader::LoadVerticesNormals(opponent.model, opponent.globalTransforms);
-        // opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb");
     }
     if(playerNum == 2) {
-        // player = {player::PlayerType::Fish};
-        // opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/daniel_ritchie.glb");
+        Player = {player::PlayerType::Fish};
+        modelloader::LoadGLB("../../src/models/3d-models/daniel_ritchie.glb", opponent.model);
+        opponent.globalTransforms = std::vector<glm::mat4>(opponent.model.nodes.size(), glm::mat4(1.0f));
+        opponent.fishData = modelloader::LoadVerticesNormals(opponent.model, opponent.globalTransforms);
     }
     std::cout << "Player "<< playerNum << std::endl;
 
@@ -267,16 +262,15 @@ bool isRetracting = false;
 float t = 0;
 float cooldownTime = 0.0f;
 void Realtime::paintGL() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     t+=0.01;
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
+    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));ww
     glUseProgram(m_shader);
 
-    player.playerType = player::PlayerType::Fisherman;
-
-    if(player.playerType == player::PlayerType::Fisherman) {
+    if(Player.playerType == player::PlayerType::Fisherman) {
         m_fishingRod.render(m_shader,renderData.globalData);
         for (SceneLightData& light : renderData.lights) {
             if (light.type == LightType::LIGHT_SPOT) {
@@ -289,21 +283,23 @@ void Realtime::paintGL() {
 
     glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
     std::string serverResponse;
-    // client.VSync(marshalMat4(viewMatrix), serverResponse);
+    client.VSync(marshalMat4(viewMatrix), serverResponse);
         for(int j =0; j<m_fishVector.size();j++){
-        //     // m_fishVector[j].moveForward();
-        //     // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
-        //     // m_fishVector[j].update(t);
-        //     m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
-            if(player.playerType == player::PlayerType::Fisherman) {
+            // m_fishVector[j].moveForward();
+            // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
+            // m_fishVector[j].update(t);
+            m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
+            if(Player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();
+
+
                 }
             }
             PaintGLHelper::renderFish(m_shader, m_fishVector[j], renderData);
         }
 
-    PaintGLHelper::setupLights(m_shader, renderData.lights, player.playerType);
+    PaintGLHelper::setupLights(m_shader, renderData.lights, Player.playerType);
     PaintGLHelper::renderShapes(m_shader, renderData.shapes, renderData.globalData);
     PaintGLHelper::renderCoral(m_shader, coral_data, renderData);
     glUseProgram(0);
@@ -343,13 +339,34 @@ void Realtime::paintGL() {
         cooldownTime -= 0.02f;
     }
 
+    //Drawing particles here
+    glUseProgram(m_particle_shader);
+    PaintGLHelper::setupMatrices(m_particle_shader, m_view, renderData.cameraData);
+    generator.drawParticles(m_fbo, m_particle_shader);
+
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
+    glUseProgram(0);
+
+
+    // Release OpenGL context for QPainter
+    QOpenGLPaintDevice device(this->size());
+    QPainter painter(&device);
+    painter.setRenderHint(QPainter::TextAntialiasing);
+    painter.setPen(Qt::white);
+    painter.setFont(QFont("Arial", 16));
+    painter.drawText(10, 30, "Hello, OpenGL!");
+    painter.end();
+    // glDisable(GL_BLEND); // Disable blending if not required
+    glEnable(GL_DEPTH_TEST); // Ensure depth testing is enabled
+
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
-
-
 
 
 void Realtime::resizeGL(int w, int h) {
@@ -492,7 +509,6 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
 
         // Update the camera's look and up vectors
         camera.look = glm::normalize(glm::vec4(look, 0.0f));
-
         update(); // asks for a PaintGL() call to occur
     }
 }
@@ -554,6 +570,9 @@ void Realtime::timerEvent(QTimerEvent *event) {
         newPos.y = 1.0f;    // Reset to ground level
         verticalVelocity = 0.0f; // Stop vertical motion
     }
+
+    //update particles here
+    generator.updateParticles(deltaTime);
 
     // Clamp position to stay within the 10x10x10 cube
     const float minBound = -15.0f;

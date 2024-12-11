@@ -13,5 +13,4 @@ void main() {
     worldPos = vec3(modelMatrix * vec4(position3d, 1.0));
     worldNormal = normalize(transpose(inverse(mat3(modelMatrix))) * normals);
     gl_Position = projMatrix * viewMatrix * modelMatrix * vec4(position3d, 1.0);
-
 }
