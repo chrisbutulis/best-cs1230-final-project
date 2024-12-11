@@ -338,10 +338,6 @@ void Realtime::paintGL() {
     painter.drawText(10, 30, "Hello, OpenGL!"); // Position: (10, 30)
     painter.end();
 
-    glPopClientAttrib();
-    glPopAttrib();
-    glClear(GL_DEPTH_BUFFER_BIT);
-
 }
 
 
