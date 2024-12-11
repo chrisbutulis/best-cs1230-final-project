@@ -95,6 +95,8 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/default.vert
         resources/shaders/postP.frag
         resources/shaders/postP.vert
+        resources/shaders/textOverlay.frag
+        resources/shaders/textOverlay.vert
         scenes/fish_game.json
         src/models/3d-models/brain_coral.glb
         src/models/3d-models/tall_coral.glb

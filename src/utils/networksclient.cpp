@@ -129,7 +129,7 @@ void NetworkClient::VSync(const std::string& updateData, std::string& serverResp
     // Parse the response
     int length, protocol, senderPlayerNumber;
     parseHeader(buffer, length, senderPlayerNumber, protocol);
-    if (protocol != 3 || senderPlayerNumber != playerNumber) {
+    if (protocol != 3 && protocol != 4 || senderPlayerNumber != playerNumber) {
         std::cerr << "Invalid sync response." << std::endl;
         return;
     }

@@ -57,6 +57,7 @@ private:
     double m_devicePixelRatio;
     std::vector<fish> m_fishVector;
     GLuint m_shader; // Stores id of shader program
+    GLuint m_text_overlay;
     GLuint m_vbo;    // Stores id of VBO
     GLuint m_vao;
 
@@ -64,6 +65,9 @@ private:
     GLuint coral_vao;
     GLuint coral_vbo;
     std::vector<coral*> coral_data;
+
+    // Timer
+    const char* fontPath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/src/fonts/timer_font.ttf";
 
     // Gameplay
     player player;

@@ -18,6 +18,9 @@
 #include "utils/paintglhelper.h"
 #include "utils/networksclient.h"
 #include "utils/utils.h"
+#include <QPainter>
+#include <QOpenGLPaintDevice>
+
 
 // ================== Project 5: Lights, Camera
 
@@ -132,7 +135,7 @@ void makeFBO(){
 }
 
 
-NetworkClient client("127.0.0.1", 9269);
+NetworkClient client("10.37.55.169", 9269);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -158,7 +161,7 @@ void Realtime::initializeGL() {
     // Shader setup (DO NOT EDIT)
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
-
+    m_text_overlay = ShaderLoader::createShaderProgram(":/resources/shaders/textOverlay.vert", ":/resources/shaders/textOverlay.frag");
     TerrainGenerator generator;
     coral_data = generator.generateCoralClusters();
 
@@ -196,17 +199,10 @@ void Realtime::initializeGL() {
     // Set the background color to a deep underwater blue
     glClearColor(0.0f, 0.1f, 0.3f, 1.0f);
 
-    // Optional: Enable and configure fog for an underwater effect
-    glEnable(GL_FOG);
-    glFogi(GL_FOG_MODE, GL_EXP2); // Use exponential fog
-    GLfloat fogColor[4] = {0.0f, 0.4f, 0.7f, 1.0f}; // Match background color
-    glFogfv(GL_FOG_COLOR, fogColor);
-    glFogf(GL_FOG_DENSITY, 0.05f); // Adjust density for desired effect
-    glHint(GL_FOG_HINT, GL_NICEST); // Best quality fog
-
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
 
     makeFBO();
 
@@ -256,7 +252,7 @@ void Realtime::paintGL() {
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));
+    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));ww
     glUseProgram(m_shader);
 
     if(player.playerType == player::PlayerType::Fisherman) {
@@ -330,6 +326,25 @@ void Realtime::paintGL() {
     glViewport(0, 0, m_screen_width, m_screen_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
+
+
+    glUseProgram(0);
+
+
+    // Release OpenGL context for QPainter
+    QOpenGLPaintDevice device(this->size());
+    QPainter painter(&device);
+    painter.setRenderHint(QPainter::TextAntialiasing);
+    painter.setPen(Qt::white);
+    painter.setFont(QFont("Arial", 16));
+    painter.drawText(10, 30, "Hello, OpenGL!");
+    painter.end();
+    // glDisable(GL_BLEND); // Disable blending if not required
+    glEnable(GL_DEPTH_TEST); // Ensure depth testing is enabled
+
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
 }
 
 
