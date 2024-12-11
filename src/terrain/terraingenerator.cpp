@@ -12,9 +12,40 @@
 #include <random>
 
 TerrainGenerator::TerrainGenerator() {
-    tallCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/tall_coral.glb");
-    brainCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/brain_coral.glb");
-    genericCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/generic_coral.glb");
+    // tallCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/tall_coral.glb");
+    // brainCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/brain_coral.glb");
+    // genericCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/generic_coral.glb");
+
+    // Define file paths
+    const std::string tallCoralPath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/tall_coral.glb";
+    const std::string brainCoralPath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/brain_coral.glb";
+    const std::string genericCoralPath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/generic_coral.glb";
+
+    // Model variables
+    tinygltf::Model tallCoralModel;
+    tinygltf::Model brainCoralModel;
+    tinygltf::Model genericCoralModel;
+
+    // Load tall coral
+    if (modelloader::LoadGLB(tallCoralPath, tallCoralModel) == 0) {
+        tallCoralData = modelloader::LoadVerticesNormals(tallCoralModel);
+    } else {
+        std::cerr << "Failed to load " << tallCoralPath << std::endl;
+    }
+
+    // Load brain coral
+    if (modelloader::LoadGLB(brainCoralPath, brainCoralModel) == 0) {
+        brainCoralData = modelloader::LoadVerticesNormals(brainCoralModel);
+    } else {
+        std::cerr << "Failed to load " << brainCoralPath << std::endl;
+    }
+
+    // Load generic coral
+    if (modelloader::LoadGLB(genericCoralPath, genericCoralModel) == 0) {
+        genericCoralData = modelloader::LoadVerticesNormals(genericCoralModel);
+    } else {
+        std::cerr << "Failed to load " << genericCoralPath << std::endl;
+    }
 }
 
 glm::mat4 getCTM(float xTransform, float zTransform) {

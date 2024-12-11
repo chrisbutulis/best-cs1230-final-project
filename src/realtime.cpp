@@ -79,7 +79,7 @@ void Realtime::finish() {
     OpenGLHelper::deleteBuffersAndVAOs(buffers, arrays, 4);
 
     glDeleteProgram(m_texture_shader);
-    glDeleteProgram(m_texture_shader);
+    glDeleteProgram(m_shader);
 
     glDeleteRenderbuffers(1, &m_fbo_renderbuffer);
     glDeleteTextures(1, &m_fbo_texture);
@@ -220,22 +220,26 @@ void Realtime::initializeGL() {
     makeFBO();
 
     fish opponent = fish(1);
+    // p_opponent = &opponent;
     settings.sceneFilePath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/scenes/fish_game.json";
     sceneChanged();
     settingsChanged();
     // int playerNum = client.VJoin();
-    int playerNum = 2;
+    int playerNum = 1;
 
     if (playerNum<1) {
         std::cerr << "Failed to connect to the server." << std::endl;
     }
     if(playerNum == 1) {
         player = {player::PlayerType::Fisherman};
-        opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb");
+        tinygltf::Model model;
+        modelloader::LoadGLB("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb", model);
+        opponent.fishData = modelloader::LoadVerticesNormals(model);
+        // opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb");
     }
     if(playerNum == 2) {
-        player = {player::PlayerType::Fish};
-        opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/daniel_ritchie.glb");
+        // player = {player::PlayerType::Fish};
+        // opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/daniel_ritchie.glb");
     }
     std::cout << "Player "<< playerNum << std::endl;
 
@@ -561,4 +565,9 @@ void Realtime::timerEvent(QTimerEvent *event) {
     // Update camera position
     camera.pos = glm::vec4(newPos, 1.0f);
     update(); // Requests a PaintGL() call to occur
+}
+
+void updateFishAnimations() {
+    //for each fish in the fish vector
+
 }

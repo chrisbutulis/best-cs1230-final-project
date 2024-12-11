@@ -67,7 +67,10 @@ private:
 
     // Gameplay
     player player;
+    // fish *p_opponent;
 
     glm::mat4 m_view;
     RenderData renderData;
+
+    void updateFishAnimations();
 };
