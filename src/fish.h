@@ -19,7 +19,6 @@ public:
     fish(float length);
 
     void update(float deltaTime);
-    void render(GLuint shader, const SceneGlobalData& globalData);
     void setBasePosition(glm::vec3 pos);
     void setRotation(glm::vec3 axis, float angle);
     void setVAOandDataSize(GLuint vao, int dataSize);
@@ -28,16 +27,22 @@ public:
     glm::vec3 look = glm::vec3{1.f,0.f,0.f};
     glm::vec3 up = glm::vec3{0.f,1.f,0.f};
     void moveForward();
+
+    std::vector<float> fishData;
+    GLuint vao;
+    GLuint vbo;
+
+    glm::vec4 cAmbient = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);   // Arbitrary ambient color
+    glm::vec4 cDiffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);   // Arbitrary diffuse color
+    glm::vec4 cSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);  // Arbitrary specular color
+    float shininess = 32.0f;
+
 private:
-    GLuint m_vao;
     int m_dataSize;
     glm::vec3 basePosition;             // Position of the rod's base
 
     float length;
     float radius;
-    glm::vec4 cAmbient = glm::vec4(0.2f, 0.2f, 0.2f, 1.0f);   // Arbitrary ambient color
-    glm::vec4 cDiffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);   // Arbitrary diffuse color
-    glm::vec4 cSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);  // Arbitrary specular color
 
     float speed;          // Speed of the fish
     float changeDirectionCooldown; // Cooldown timer for changing direction

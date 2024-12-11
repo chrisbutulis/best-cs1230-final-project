@@ -8,11 +8,6 @@ fish::fish(float length):length(length),ctm(glm::mat4(1.0f)) {
     resetDirectionCooldown();
 }
 
-void fish::setVAOandDataSize(GLuint vao, int dataSize){
-    m_vao = vao;
-    m_dataSize = dataSize;
-}
-
 void fish::setBasePosition(glm::vec3 pos) {
     basePosition = pos;
 
@@ -35,22 +30,6 @@ void fish::setRotation(glm::vec3 axis, float angle) {
     look = glm::normalize(glm::vec3(rotationMatrix * localForward));
 }
 
-
-void fish::render(GLuint shader, const SceneGlobalData& globalData) {
-    glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, &ctm[0][0]);
-
-    glUniform4fv(glGetUniformLocation(shader, "shapeColor"), 1, glm::value_ptr(cAmbient * globalData.ka));
-    glUniform4fv(glGetUniformLocation(shader, "shapeDiffuse"), 1, glm::value_ptr(cDiffuse * globalData.kd));
-    glUniform4fv(glGetUniformLocation(shader, "shapeSpecular"), 1, glm::value_ptr(cSpecular * globalData.ks));
-
-    glUniform1f(glGetUniformLocation(shader, "shininess"), 0.01);
-    glBindVertexArray(m_vao);
-    glDrawArrays(GL_TRIANGLES, 0, m_dataSize / 6);
-    glBindVertexArray(0);
-}
-
-
-
 // Resets the cooldown timer to a random interval
 void fish::resetDirectionCooldown() {
     changeDirectionCooldown = glm::linearRand(2.0f, 5.0f); // Random time
@@ -60,7 +39,7 @@ void fish::resetDirectionCooldown() {
  glm::vec3 currentWander = glm::vec3(0.0f); // Store the current random wander vector
 float wanderInterval = 5.0f; // Time interval between wander updates
  void fish::update(float deltaTime) {
-     timeSinceLastWander += deltaTime;
+     timeSinceLastWander += 0.1;
 
      if (timeSinceLastWander >= wanderInterval) {
          float wanderStrength = 0.05f; // Reduced wander strength for smoother motion

@@ -1,4 +1,5 @@
 #include "paintglhelper.h"
+#include "../player.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include <iostream>
@@ -39,7 +40,7 @@ glm::mat4 PaintGLHelper::calculateViewMatrix(const SceneCameraData &camera) {
 }
 
 
-void PaintGLHelper::setupMatrices(GLuint shader, const glm::mat4& projMatrix, const SceneCameraData& cameraData) {
+glm::mat4 PaintGLHelper::setupMatrices(GLuint shader, const glm::mat4& projMatrix, const SceneCameraData& cameraData) {
     glm::mat4 View = calculateViewMatrix(cameraData);
 
     glUniformMatrix4fv(glGetUniformLocation(shader, "projMatrix"), 1, GL_FALSE, &projMatrix[0][0]);
@@ -47,9 +48,10 @@ void PaintGLHelper::setupMatrices(GLuint shader, const glm::mat4& projMatrix, co
 
     glm::vec4 viewPosWorld = glm::inverse(View) * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glUniform4fv(glGetUniformLocation(shader, "viewPos"), 1, glm::value_ptr(viewPosWorld));
+    return View;
 }
 
-void PaintGLHelper::setupLights(GLuint shader, const std::vector<SceneLightData>& lights) {
+void PaintGLHelper::setupLights(GLuint shader, const std::vector<SceneLightData>& lights, player::PlayerType playerType) {
     int numLights = lights.size();
     glUniform1i(glGetUniformLocation(shader, "numLights"), numLights);
 
@@ -57,13 +59,22 @@ void PaintGLHelper::setupLights(GLuint shader, const std::vector<SceneLightData>
         const auto& light = lights[i];
         std::string lightIndex = "lights[" + std::to_string(i) + "]";
 
-        if (light.type == LightType::LIGHT_DIRECTIONAL) {
-            glUniform4fv(glGetUniformLocation(shader, (lightIndex + ".color").c_str()), 1, glm::value_ptr(light.color));
-            setupDirectionalLight(shader, lightIndex, light);
+        if(playerType == player::PlayerType::Fisherman) {
+            if(light.type == LightType::LIGHT_SPOT) {
+                glUniform4fv(glGetUniformLocation(shader, (lightIndex + ".color").c_str()), 1, glm::value_ptr(light.color));
+                setupPointOrSpotLight(shader, lightIndex, light);
+            }
         } else {
-            //for future lights
-            glUniform4fv(glGetUniformLocation(shader, (lightIndex + ".color").c_str()), 1, glm::value_ptr(light.color));
-            setupPointOrSpotLight(shader, lightIndex, light);
+            if(light.type != LightType::LIGHT_SPOT) {
+                if (light.type == LightType::LIGHT_DIRECTIONAL) {
+                    glUniform4fv(glGetUniformLocation(shader, (lightIndex + ".color").c_str()), 1, glm::value_ptr(light.color));
+                    setupDirectionalLight(shader, lightIndex, light);
+                } else {
+                    //for future lights
+                    glUniform4fv(glGetUniformLocation(shader, (lightIndex + ".color").c_str()), 1, glm::value_ptr(light.color));
+                    setupPointOrSpotLight(shader, lightIndex, light);
+                }
+            }
         }
     }
 }
@@ -110,6 +121,42 @@ void PaintGLHelper::renderShapes(GLuint shader, const std::vector<RenderShapeDat
         glBindVertexArray(shape.vao);
         glDrawArrays(GL_TRIANGLES, 0, shape.dataSize / 6);
         glBindVertexArray(0);
+    }
+}
+
+void PaintGLHelper::renderCoral(GLuint shader, const std::vector<coral*> coralData, const RenderData& renderData) {
+    if(!renderData.shapes.empty()) {
+        for (coral* coral : coralData) {
+            auto shape = renderData.shapes[0];
+            auto globalData = renderData.globalData;
+
+            glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, &coral->ctm[0][0]);
+            glUniform4fv(glGetUniformLocation(shader, "shapeColor"), 1, glm::value_ptr(coral->cAmbient * globalData.ka));
+            glUniform4fv(glGetUniformLocation(shader, "shapeDiffuse"), 1, glm::value_ptr(coral->cDiffuse * globalData.kd));
+            glUniform4fv(glGetUniformLocation(shader, "shapeSpecular"), 1, glm::value_ptr(coral->cSpecular * globalData.ks));
+            glUniform1f(glGetUniformLocation(shader, "shininess"), coral->shininess);
+
+            glBindVertexArray(coral->vao);
+            glDrawArrays(GL_TRIANGLES, 0, coral->coralData.size() / 6);
+            glBindVertexArray(0);
+        }
+    }
+}
+
+void PaintGLHelper::renderFish(GLuint shader, fish fish, const RenderData& renderData) {
+    if(!renderData.shapes.empty()) {
+            auto shape = renderData.shapes[0];
+            auto globalData = renderData.globalData;
+
+            glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, &fish.ctm[0][0]);
+            glUniform4fv(glGetUniformLocation(shader, "shapeColor"), 1, glm::value_ptr(fish.cAmbient * globalData.ka));
+            glUniform4fv(glGetUniformLocation(shader, "shapeDiffuse"), 1, glm::value_ptr(fish.cDiffuse * globalData.kd));
+            glUniform4fv(glGetUniformLocation(shader, "shapeSpecular"), 1, glm::value_ptr(fish.cSpecular * globalData.ks));
+            glUniform1f(glGetUniformLocation(shader, "shininess"), fish.shininess);
+
+            glBindVertexArray(fish.vao);
+            glDrawArrays(GL_TRIANGLES, 0, fish.fishData.size() / 6);
+            glBindVertexArray(0);
     }
 }
 

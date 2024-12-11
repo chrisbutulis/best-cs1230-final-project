@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Sets project name
-project(projects_realtime LANGUAGES CXX C)
+project(FishGameClient LANGUAGES CXX C)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -50,8 +50,13 @@ add_executable(${PROJECT_NAME}
     src/fishingrod.h src/fishingrod.cpp
     src/fishingline.h src/fishingline.cpp
     src/fish.h src/fish.cpp
-
     src/particlegenerator.h src/particlegenerator.cpp
+    src/models/model-loader.cpp
+    src/models/model-loader.h
+    src/utils/networksclient.h src/utils/networksclient.cpp
+    src/utils/utils.h src/utils/utils.cpp
+    src/player.h
+    src/player.cpp
 )
 
 # GLM: this creates its library and allows you to `#include "glm/..."`
@@ -60,6 +65,16 @@ add_subdirectory(glm)
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`
 add_library(StaticGLEW STATIC glew/src/glew.c
     src/shapes/Cone.h src/shapes/Cone.cpp)
+    lib/tiny_gltf.h
+    lib/stb_image.h
+    lib/tiny_gltf.h lib/tiny_gltf.cpp
+    src/terrain/terraingenerator.h src/terrain/terraingenerator.cpp
+    src/terrain/coral.h src/terrain/coral.cpp
+    src/terrain/braincoral.h
+    src/terrain/tallcoral.h
+    src/terrain/braincoral.cpp
+    src/terrain/genericcoral.h src/terrain/genericcoral.cpp
+)
 include_directories(${PROJECT_NAME} PRIVATE glew/include)
 
 # Specifies libraries to be linked (Qt components, glew, etc)
@@ -83,6 +98,13 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         resources/shaders/postP.vert
         resources/shaders/particle.frag
         resources/shaders/particle.vert
+        resources/shaders/textOverlay.frag
+        resources/shaders/textOverlay.vert
+        scenes/fish_game.json
+        src/models/3d-models/brain_coral.glb
+        src/models/3d-models/tall_coral.glb
+        src/models/3d-models/generic_coral.glb
+        src/models/3d-models/tall_coral.glb
 )
 
 # GLEW: this provides support for Windows (including 64-bit)
