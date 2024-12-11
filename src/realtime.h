@@ -70,7 +70,7 @@ private:
     const char* fontPath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/src/fonts/timer_font.ttf";
 
     // Gameplay
-    player player;
+    player Player;
 
     glm::mat4 m_view;
     RenderData renderData;
