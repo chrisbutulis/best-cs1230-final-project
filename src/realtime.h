@@ -67,12 +67,11 @@ private:
 
     // Gameplay
     player player;
-    // fish *p_opponent;
 
     glm::mat4 m_view;
     RenderData renderData;
 
-    void updateFishAnimations(float deltaTime);
+    void updateFishAnimations();
 
     std::vector<glm::mat4> generateRandomTransforms(size_t size);
 };

@@ -566,67 +566,15 @@ void Realtime::timerEvent(QTimerEvent *event) {
     // Update camera position
     camera.pos = glm::vec4(newPos, 1.0f);
 
-    updateFishAnimations(deltaTime);
-
+    updateFishAnimations();
 
     update(); // Requests a PaintGL() call to occur
-}
-
-// Comparison with a tolerance
-bool AreMatricesEqual(const glm::mat4 &mat1, const glm::mat4 &mat2, float epsilon = 1e-6f) {
-    for (int i = 0; i < 16; ++i) {
-        if (std::abs(glm::value_ptr(mat1)[i] - glm::value_ptr(mat2)[i]) > epsilon) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool AreMatrixListsEqual(std::vector<glm::mat4> &l1, std::vector<glm::mat4> &l2) {
-    for(int i = 0; i < l1.size(); i++) {
-        if(!(AreMatricesEqual(l1[i], l2[i]))) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool floatVecEquality(std::vector<float> &l1, std::vector<float> &l2) {
-    for(int i = 0; i < l1.size(); i++) {
-        if(l1[i]!= l2[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-std::vector<glm::mat4> Realtime::generateRandomTransforms(size_t size) {
-    std::vector<glm::mat4> transforms(size);
-
-    for (size_t i = 0; i < size; ++i) {
-        glm::vec3 randomTranslation = glm::vec3(rand() / float(RAND_MAX) * 2.0f - 1.0f,
-                                                rand() / float(RAND_MAX) * 2.0f - 1.0f,
-                                                rand() / float(RAND_MAX) * 2.0f - 1.0f);
-
-        float angle = rand() / float(RAND_MAX) * glm::two_pi<float>();
-        glm::quat randomRotation = glm::angleAxis(angle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-        glm::vec3 randomScale = glm::vec3(rand() / float(RAND_MAX) * 1.5f + 0.5f);
-
-        glm::mat4 translationMat = glm::translate(glm::mat4(1.0f), randomTranslation);
-        glm::mat4 rotationMat = glm::mat4_cast(randomRotation);
-        glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), randomScale);
-
-        transforms[i] = translationMat * rotationMat * scaleMat;
-    }
-
-    return transforms;
 }
 
 float rot = 0;
 bool neg = true;
 float transl = 0;
-void Realtime::updateFishAnimations(float deltaTime) {
+void Realtime::updateFishAnimations() {
     //for each fish in m_fishVector
         //(fish has a model member variable and a current time member variable)
         //updateanimation (use animation index 1)
@@ -635,22 +583,8 @@ void Realtime::updateFishAnimations(float deltaTime) {
         //call modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
     // std::cout <<"num fish "<<m_fishVector.size()<<std::endl;
     for(fish& fish : m_fishVector) {
-        int animationIndex = 0;
-        // float c = fish.currentTime;
-        // std::vector<glm::mat4> copy = fish.globalTransforms;
-        // std::vector<float> copy = fish.fishData;
 
         fish.globalTransforms = std::vector<glm::mat4>(fish.model.nodes.size(), glm::mat4(1.0f));
-
-        modelloader::UpdateAnimation(fish.currentTime, deltaTime, fish.model, fish.model.animations[animationIndex]);
-        // c = fish.currentTime;
-        // std::cout<<c<<std::endl;
-
-        // for(tinygltf::Node& n: fish.model.nodes) {
-        //     std::cout<<n.name<<std::endl;
-        // }
-
-        // modelloader::ApplyAnimations(fish.model, fish.currentTime, fish.globalTransforms, animationIndex);
 
         float angleW = 15.f;
         float angleStep = 1.f;
@@ -671,63 +605,13 @@ void Realtime::updateFishAnimations(float deltaTime) {
             }
         }
 
-        // fish.globalTransforms[10] += glm::vec4(5*transl*glm::normalize(fish.look),0.0);
-
         for(glm::mat4& m:fish.globalTransforms) {
             m = glm::rotate(m, rot, glm::cross(fish.look,fish.up));
             m += glm::vec4(transl*glm::normalize(fish.look),0.0);
         }
 
-        // int index = 0;
-        // for (glm::mat4& m : fish.globalTransforms) {
-        //     if ((index >= 10 && index <= 12) || (index >= 46 && index <= 55)) { // Head and Gill nodes
-        //         m = glm::rotate(m, rot, glm::cross(fish.look, fish.up));
-        //         m += glm::vec4(transl * glm::normalize(fish.look), 0.0);
-        //     } else if ((index >= 13 && index <= 24) || (index >= 56 && index <= 67)) { // Tail and Spine nodes
-        //         m = glm::rotate(m, -rot, glm::cross(fish.look, fish.up));
-        //         m -= glm::vec4(transl * glm::normalize(fish.look), 0.0);
-        //     }
-        //     ++index;
-        // }
-
-        // float time = fish.currentTime; // Or your preferred method for getting elapsed time
-        // float waveAmplitude = 0.1f; // Adjust for how much the fish should bend
-        // float waveFrequency = 2.0f; // Adjust for wave speed
-
-        // for (size_t i = 0; i < fish.globalTransforms.size(); ++i) {
-        //     glm::mat4& m = fish.globalTransforms[i];
-
-        //     // Calculate the wave offset based on the node index and time
-        //     float waveOffset = waveAmplitude * sin(waveFrequency * time - i * 0.5f);
-
-        //     // Head and gill nodes
-        //     if ((i >= 10 && i <= 12) || (i >= 46 && i <= 48) || (i >= 6 && i <= 8) || (i >= 49 && i <= 55)) {
-        //         m = glm::rotate(m, waveOffset, glm::cross(fish.look, fish.up));
-        //     }
-        //     // Spine and tail nodes
-        //     else if ((i >= 13 && i <= 24) || (i >= 56 && i <= 67)) {
-        //         m = glm::rotate(m, -waveOffset, glm::cross(fish.look, fish.up));
-        //     }
-        // }
-
-
-
-        // std::cout<<(AreMatrixListsEqual(copy, fish.globalTransforms))<<std::endl;
         fish.fishData = modelloader::LoadVerticesNormals(fish.model, fish.globalTransforms);
-        // std::cout<<floatVecEquality(copy, fish.fishData)<<std::endl;
 
         modelloader::updateVBO(fish.vbo, fish.fishData);
-
-        // glFinish();
-        // std::vector<glm::mat4> t1 = generateRandomTransforms(size_t(fish.fishData.size()));
-        // // std::vector<glm::mat4> t2 = generateRandomTransforms(size_t(fish.fishData.size()));
-        // // if(!AreMatrixListsEqual(t1,t2)) {
-        //     std::vector<float> c1 = modelloader::LoadVerticesNormals(fish.model, t1);
-        // //     std::vector<float> c2 = modelloader::LoadVerticesNormals(fish.model, t2);
-        // //     std::cout<<floatVecEquality(c1,c2)<<std::endl;
-        // // }
-
-        // modelloader::updateVBO(fish.vbo, c1);
-
     }
 }
