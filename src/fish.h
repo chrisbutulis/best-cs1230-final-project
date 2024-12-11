@@ -12,7 +12,8 @@
 #include <glm/gtc/random.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
-
+#include "../../lib/tiny_gltf.h"
+#include <unistd.h>
 class fish
 {
 public:
@@ -36,6 +37,10 @@ public:
     glm::vec4 cDiffuse = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);   // Arbitrary diffuse color
     glm::vec4 cSpecular = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);  // Arbitrary specular color
     float shininess = 32.0f;
+
+    float currentTime = 0.f;
+    tinygltf::Model model;
+    std::vector<glm::mat4> globalTransforms;
 
 private:
     int m_dataSize;

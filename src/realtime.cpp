@@ -232,9 +232,10 @@ void Realtime::initializeGL() {
     }
     if(playerNum == 1) {
         player = {player::PlayerType::Fisherman};
-        tinygltf::Model model;
-        modelloader::LoadGLB("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb", model);
-        opponent.fishData = modelloader::LoadVerticesNormals(model);
+        // tinygltf::Model model;
+        modelloader::LoadGLB("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb", opponent.model);
+        opponent.globalTransforms = std::vector<glm::mat4>(opponent.model.nodes.size(), glm::mat4(1.0f));
+        opponent.fishData = modelloader::LoadVerticesNormals(opponent.model, opponent.globalTransforms);
         // opponent.fishData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/trout.glb");
     }
     if(playerNum == 2) {
@@ -568,6 +569,11 @@ void Realtime::timerEvent(QTimerEvent *event) {
 }
 
 void updateFishAnimations() {
-    //for each fish in the fish vector
+    //for each fish in m_fishVector
+        //(fish has a model member variable and a current time member variable)
+        //updateanimation (use animation index 1)
+        //apply animation to globalTransforms member in fish
+        //call loadVerticesNormals and save it to fishData
+        //call modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
 
 }

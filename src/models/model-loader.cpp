@@ -128,11 +128,16 @@ int modelloader::LoadGLB(const std::string &filename, tinygltf::Model &model) {
     return 0;
 }
 
-std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model) {
+std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model, std::vector<glm::mat4> &globalTransforms) {
     // Compute global transforms
 
     //if no animations
-    std::vector<glm::mat4> globalTransforms(model.nodes.size(), glm::mat4(1.0f));
+    // std::vector<glm::mat4>
+    if(model.animations.empty()) {
+        globalTransforms = std::vector<glm::mat4>(model.nodes.size(), glm::mat4(1.0f));
+    } else {
+        // assume animation has already been applied
+    }
     //else (if animations), init to result of apply animations helper
 
 
@@ -196,22 +201,14 @@ std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model) {
     return finalVertices;
 }
 
-
-
-// Load GLB and return transformed vertices/normals
-/*
-std::vector<float> modelloader::LoadGLBVerticesNormals(const std::string &filename) {
-    tinygltf::Model model;
-    tinygltf::TinyGLTF loader;
-    std::string err, warn;
-
-    if (!loader.LoadBinaryFromFile(&model, &err, &warn, filename)) {
-        std::cerr << "Error loading GLB: " << filename << "\n" << err << "\n" << warn << std::endl;
-        return {};
-    }
-
+std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model) {
     // Compute global transforms
-    std::vector<glm::mat4> globalTransforms(model.nodes.size(), glm::mat4(1.0f));
+
+    //if no animations
+    std::vector<glm::mat4> globalTransforms = std::vector<glm::mat4>(model.nodes.size(), glm::mat4(1.0f));
+    //else (if animations), init to result of apply animations helper
+
+
     for (int rootNode : model.scenes[model.defaultScene >= 0 ? model.defaultScene : 0].nodes) {
         ComputeNodeTransforms(model, rootNode, glm::mat4(1.0f), globalTransforms);
     }
@@ -271,4 +268,130 @@ std::vector<float> modelloader::LoadGLBVerticesNormals(const std::string &filena
 
     return finalVertices;
 }
-*/
+
+void modelloader::UpdateAnimation(float &currentTime, float deltaTime, const tinygltf::Model &model, const tinygltf::Animation &animation) {
+    // Retrieve the time accessor for the first sampler in the animation
+    const int timeAccessorIndex = animation.samplers[0].input;
+    const auto &timeAccessor = model.accessors[timeAccessorIndex];
+
+    // Ensure the accessor has min and max values defined
+    if (timeAccessor.minValues.empty() || timeAccessor.maxValues.empty()) {
+        std::cerr << "Time accessor does not have min/max values defined." << std::endl;
+        return;
+    }
+
+    float startTime = timeAccessor.minValues[0]; // Minimum time in the accessor
+    float endTime = timeAccessor.maxValues[0];   // Maximum time in the accessor
+    float duration = endTime - startTime;
+
+    // Update the current time
+    currentTime += deltaTime;
+
+    // Loop the animation if it exceeds the duration
+    if (currentTime > duration) {
+        currentTime = fmod(currentTime, duration); // Wrap around using modulo
+    }
+}
+
+void modelloader::ApplyAnimations(const tinygltf::Model &model, float timeStep,
+                                  std::vector<glm::mat4> &globalTransforms, int animationIndex) {
+    if (animationIndex < 0 || animationIndex >= model.animations.size()) {
+        std::cerr << "Invalid animation index: " << animationIndex << std::endl;
+        return;
+    }
+
+    const auto &animation = model.animations[animationIndex];
+
+    for (const auto &channel : animation.channels) {
+        const auto &sampler = animation.samplers[channel.sampler];
+        int nodeIndex = channel.target_node;
+        if (nodeIndex < 0 || nodeIndex >= globalTransforms.size()) continue;
+
+        // Initialize default transform components
+        glm::vec3 translation(0.0f);
+        glm::quat rotation(1.0f, 0.0f, 0.0f, 0.0f); // Identity quaternion
+        glm::vec3 scale(1.0f);
+
+        // Compute interpolated value based on the target path
+        if (channel.target_path == "translation") {
+            translation = InterpolateTranslation(sampler, timeStep, model);
+        } else if (channel.target_path == "rotation") {
+            rotation = InterpolateRotation(sampler, timeStep, model);
+        } else if (channel.target_path == "scale") {
+            scale = InterpolateScale(sampler, timeStep, model);
+        }
+
+        // Create the node's local transform
+        glm::mat4 localTransform = glm::translate(glm::mat4(1.0f), translation) *
+                                   glm::mat4_cast(rotation) *
+                                   glm::scale(glm::mat4(1.0f), scale);
+
+        // Combine with the global transforms
+        globalTransforms[nodeIndex] = localTransform * globalTransforms[nodeIndex];
+    }
+}
+
+template <typename T>
+std::vector<T> GetAccessorData(const tinygltf::Model &model, int accessorIndex) {
+    const auto &accessor = model.accessors[accessorIndex];
+    const auto &bufferView = model.bufferViews[accessor.bufferView];
+    const auto &buffer = model.buffers[bufferView.buffer];
+
+    const unsigned char *dataPtr = buffer.data.data() + bufferView.byteOffset + accessor.byteOffset;
+    size_t count = accessor.count;
+    size_t stride = accessor.ByteStride(bufferView) ? accessor.ByteStride(bufferView) : sizeof(T);
+
+    std::vector<T> data(count);
+    for (size_t i = 0; i < count; ++i) {
+        data[i] = *reinterpret_cast<const T *>(dataPtr + i * stride);
+    }
+
+    return data;
+}
+
+glm::vec3 modelloader::InterpolateTranslation(const tinygltf::AnimationSampler &sampler, float timeStep, const tinygltf::Model &model) {
+    // Fetch times and values from accessors
+    auto times = GetAccessorData<float>(model, sampler.input);
+    auto values = GetAccessorData<glm::vec3>(model, sampler.output);
+
+    // Find the keyframes to interpolate between
+    int idx1 = 0, idx2 = 1;
+    while (timeStep > times[idx2]) {
+        ++idx1;
+        ++idx2;
+    }
+
+    // Linear interpolation
+    float t = (timeStep - times[idx1]) / (times[idx2] - times[idx1]);
+    return glm::mix(values[idx1], values[idx2], t);
+}
+
+glm::quat modelloader::InterpolateRotation(const tinygltf::AnimationSampler &sampler, float timeStep, const tinygltf::Model &model) {
+    auto times = GetAccessorData<float>(model, sampler.input);
+    auto values = GetAccessorData<glm::quat>(model, sampler.output);
+
+    int idx1 = 0, idx2 = 1;
+    while (timeStep > times[idx2]) {
+        ++idx1;
+        ++idx2;
+    }
+
+    float t = (timeStep - times[idx1]) / (times[idx2] - times[idx1]);
+    return glm::slerp(values[idx1], values[idx2], t);
+}
+
+glm::vec3 modelloader::InterpolateScale(const tinygltf::AnimationSampler &sampler, float timeStep, const tinygltf::Model &model) {
+    auto times = GetAccessorData<float>(model, sampler.input);
+    auto values = GetAccessorData<glm::vec3>(model, sampler.output);
+
+    int idx1 = 0, idx2 = 1;
+    while (timeStep > times[idx2]) {
+        ++idx1;
+        ++idx2;
+    }
+
+    float t = (timeStep - times[idx1]) / (times[idx2] - times[idx1]);
+    return glm::mix(values[idx1], values[idx2], t);
+}
+
+

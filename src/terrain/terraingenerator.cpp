@@ -28,6 +28,7 @@ TerrainGenerator::TerrainGenerator() {
 
     // Load tall coral
     if (modelloader::LoadGLB(tallCoralPath, tallCoralModel) == 0) {
+        // std::vector<glm::mat4> transforms = std::vector<glm::mat4>(tallCoralModel.nodes.size(), glm::mat4(1.0f));
         tallCoralData = modelloader::LoadVerticesNormals(tallCoralModel);
     } else {
         std::cerr << "Failed to load " << tallCoralPath << std::endl;
@@ -35,6 +36,7 @@ TerrainGenerator::TerrainGenerator() {
 
     // Load brain coral
     if (modelloader::LoadGLB(brainCoralPath, brainCoralModel) == 0) {
+        // std::vector<glm::mat4> transforms = std::vector<glm::mat4>(tallCoralModel.nodes.size(), glm::mat4(1.0f));
         brainCoralData = modelloader::LoadVerticesNormals(brainCoralModel);
     } else {
         std::cerr << "Failed to load " << brainCoralPath << std::endl;
@@ -42,6 +44,7 @@ TerrainGenerator::TerrainGenerator() {
 
     // Load generic coral
     if (modelloader::LoadGLB(genericCoralPath, genericCoralModel) == 0) {
+        // std::vector<glm::mat4> transforms = std::vector<glm::mat4>(tallCoralModel.nodes.size(), glm::mat4(1.0f));
         genericCoralData = modelloader::LoadVerticesNormals(genericCoralModel);
     } else {
         std::cerr << "Failed to load " << genericCoralPath << std::endl;
