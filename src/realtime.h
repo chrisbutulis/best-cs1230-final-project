@@ -69,7 +69,7 @@ private:
 
     // Timer
     timer tmr;
-    const char* fontPath = "../../src/fonts/timer_font.ttf";
+    const char* fontPath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/src/fonts/timer_font.ttf";
 
     // Gameplay
     player player;

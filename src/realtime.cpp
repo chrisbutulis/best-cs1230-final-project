@@ -19,6 +19,8 @@
 #include "utils/networksclient.h"
 #include "utils/utils.h"
 #include "timer.h"
+#include <QPainter>
+
 
 // ================== Project 5: Lights, Camera
 
@@ -133,7 +135,7 @@ void makeFBO(){
 }
 
 
-NetworkClient client("127.0.0.1", 9269);
+NetworkClient client("10.37.55.169", 9269);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -197,33 +199,16 @@ void Realtime::initializeGL() {
     // Set the background color to a deep underwater blue
     glClearColor(0.0f, 0.1f, 0.3f, 1.0f);
 
-    // Optional: Enable and configure fog for an underwater effect
-    glEnable(GL_FOG);
-    glFogi(GL_FOG_MODE, GL_EXP2); // Use exponential fog
-    GLfloat fogColor[4] = {0.0f, 0.4f, 0.7f, 1.0f}; // Match background color
-    glFogfv(GL_FOG_COLOR, fogColor);
-    glFogf(GL_FOG_DENSITY, 0.05f); // Adjust density for desired effect
-    glHint(GL_FOG_HINT, GL_NICEST); // Best quality fog
-
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    // Initialize Timer
-    FT_Library ft;
-    FT_Face face;
-    tmr.initFreeType(ft, face, fontPath);
-    glm::mat4 projection = glm::ortho(0.0f, float(m_screen_width), 0.0f, float(m_screen_height));
-    glUseProgram(m_text_overlay);
-    glUniform1i(glGetUniformLocation(m_text_overlay, "s2D"), 0);
-    glUniformMatrix4fv(glGetUniformLocation(m_text_overlay, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-    glUseProgram(0);
 
     makeFBO();
 
     fish opponent = fish(1);
 
-    settings.sceneFilePath = "../../scenes/fish_game.json";
+    settings.sceneFilePath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/scenes/fish_game.json";
     sceneChanged();
     settingsChanged();
     int playerNum = client.VJoin();
@@ -341,10 +326,22 @@ void Realtime::paintGL() {
     glViewport(0, 0, m_screen_width, m_screen_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     paintTexture(m_fbo_texture,settings.perPixelFilter,settings.kernelBasedFilter);
-    glUseProgram(m_text_overlay);
 
-    tmr.renderText(m_text_overlay, "T", 10.0f, 550.0f, 1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+
     glUseProgram(0);
+
+
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::TextAntialiasing); // Enable text antialiasing
+    painter.setPen(Qt::white);
+    painter.setFont(QFont("Arial", 16));
+    painter.drawText(10, 30, "Hello, OpenGL!"); // Position: (10, 30)
+    painter.end();
+
+    glPopClientAttrib();
+    glPopAttrib();
+    glClear(GL_DEPTH_BUFFER_BIT);
+
 }
 
 
