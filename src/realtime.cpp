@@ -95,6 +95,15 @@ void Realtime::finish() {
 
     OpenGLHelper::deleteBuffersAndVAOs(buffers, arrays, 4);
 
+    glDeleteProgram(m_texture_shader);
+    glDeleteProgram(m_shader);
+
+    glDeleteRenderbuffers(1, &m_fbo_renderbuffer);
+    glDeleteTextures(1, &m_fbo_texture);
+    glDeleteFramebuffers(1, &m_fbo);
+
+    //TODO: delete all the coral and fish vaos vbos
+
     this->doneCurrent();
 }
 
@@ -248,19 +257,26 @@ void Realtime::initializeGL() {
     makeFBO();
 
     fish opponent = fish(1);
+
     settings.sceneFilePath = "../../scenes/fish_game.json";
+
     sceneChanged();
     settingsChanged();
+
     if (playerNum<1) {
         std::cerr << "Failed to connect to the server." << std::endl;
     }
     if(playerNum == 1) {
         Player = {player::PlayerType::Fisherman};
-         opponent.fishData = modelloader::LoadGLBVerticesNormals("../../src/models/3d-models/trout.glb");
+        modelloader::LoadGLB("../../src/models/3d-models/trout.glb", opponent.model);
+        opponent.globalTransforms = std::vector<glm::mat4>(opponent.model.nodes.size(), glm::mat4(1.0f));
+        opponent.fishData = modelloader::LoadVerticesNormals(opponent.model, opponent.globalTransforms);
     }
     if(playerNum == 2) {
         Player = {player::PlayerType::Fish};
-        opponent.fishData = modelloader::LoadGLBVerticesNormals("../../src/models/3d-models/daniel_ritchie.glb");
+        modelloader::LoadGLB("../../src/models/3d-models/daniel_ritchie.glb", opponent.model);
+        opponent.globalTransforms = std::vector<glm::mat4>(opponent.model.nodes.size(), glm::mat4(1.0f));
+        opponent.fishData = modelloader::LoadVerticesNormals(opponent.model, opponent.globalTransforms);
     }
     std::cout << "Player "<< playerNum << std::endl;
 
@@ -317,6 +333,8 @@ void Realtime::paintGL() {
             if(Player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();
+
+
                 }
             }
             PaintGLHelper::renderFish(m_shader, m_fishVector[j], renderData);
@@ -404,6 +422,17 @@ void Realtime::resizeGL(int w, int h) {
         settings.farPlane,
         settings.aspectRatio
         );
+
+    glDeleteRenderbuffers(1, &m_fbo_renderbuffer);
+    glDeleteTextures(1, &m_fbo_texture);
+    glDeleteFramebuffers(1, &m_fbo);
+
+    m_screen_width = size().width() * m_devicePixelRatio;
+    m_screen_height = size().height() * m_devicePixelRatio;
+    m_fbo_width = m_screen_width;
+    m_fbo_height = m_screen_height;
+
+    makeFBO();
 }
 
 void Realtime::sceneChanged() {
@@ -586,7 +615,7 @@ void Realtime::timerEvent(QTimerEvent *event) {
 
     //update particles here
     generator.updateParticles(deltaTime);
-  
+
     // Clamp position to stay within the 10x10x10 cube
     const float minBound = -15.0f;
     const float maxBound = 15.0f;
@@ -597,5 +626,53 @@ void Realtime::timerEvent(QTimerEvent *event) {
 
     // Update camera position
     camera.pos = glm::vec4(newPos, 1.0f);
+
+    updateFishAnimations();
+
     update(); // Requests a PaintGL() call to occur
+}
+
+float rot = 0;
+bool neg = true;
+float transl = 0;
+void Realtime::updateFishAnimations() {
+    //for each fish in m_fishVector
+        //(fish has a model member variable and a current time member variable)
+        //updateanimation (use animation index 1)
+        //apply animation to globalTransforms member in fish
+        //call loadVerticesNormals and save it to fishData
+        //call modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
+    // std::cout <<"num fish "<<m_fishVector.size()<<std::endl;
+    for(fish& fish : m_fishVector) {
+
+        fish.globalTransforms = std::vector<glm::mat4>(fish.model.nodes.size(), glm::mat4(1.0f));
+
+        float angleW = 15.f;
+        float angleStep = 1.f;
+        float translStep = .008f;
+        if(neg) {
+            rot -=glm::radians(angleStep);
+            transl -= translStep;
+            if(rot < -glm::radians(angleW)) {
+                rot = -glm::radians(angleW);
+                neg = false;
+            }
+        } else {
+            rot +=glm::radians(angleStep);
+            transl += translStep;
+            if(rot > glm::radians(angleW)) {
+                rot = glm::radians(angleW);
+                neg = true;
+            }
+        }
+
+        for(glm::mat4& m:fish.globalTransforms) {
+            m = glm::rotate(m, rot, glm::cross(fish.look,fish.up));
+            m += glm::vec4(transl*glm::normalize(fish.look),0.0);
+        }
+
+        fish.fishData = modelloader::LoadVerticesNormals(fish.model, fish.globalTransforms);
+
+        modelloader::updateVBO(fish.vbo, fish.fishData);
+    }
 }
