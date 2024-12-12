@@ -458,6 +458,18 @@ void Realtime::sceneChanged() {
     update();
 }
 
+Realtime::~Realtime() {
+    stopThread = true;
+
+    // Join threads if they are running
+    if (recvUpdateThread.joinable()) {
+        recvUpdateThread.join();
+    }
+    if (sendUpdateThread.joinable()) {
+        sendUpdateThread.join();
+    }
+}
+
 void Realtime::settingsChanged() {
     OpenGLHelper::updateShapesAndBuffers(renderData, m_view, Cylinder, Cone, Cube, Sphere, settings);
 

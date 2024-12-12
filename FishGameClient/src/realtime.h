@@ -23,6 +23,7 @@ class Realtime : public QOpenGLWidget
 {
 public:
     Realtime(QWidget *parent = nullptr);
+    ~Realtime();
     void finish();                                      // Called on program exit
     void sceneChanged();
     void settingsChanged();
