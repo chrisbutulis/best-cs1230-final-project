@@ -74,4 +74,8 @@ private:
 
     glm::mat4 m_view;
     RenderData renderData;
+
+    void updateFishAnimations();
+
+    std::vector<glm::mat4> generateRandomTransforms(size_t size);
 };
