@@ -72,7 +72,8 @@ float kernel[9] = {
 };
 
     GLuint quadVAO, quadVBO;
-    ParticleGenerator generator(ParticleGenerator::GeneratorType::FIREWORKS);
+//    ParticleGenerator generator(ParticleGenerator::GeneratorType::FIREWORKS);
+    std::vector<ParticleGenerator> generators;
 
 void Realtime::finish() {
     killTimer(m_timer);
@@ -342,7 +343,10 @@ void Realtime::paintGL() {
     //Drawing particles here
     glUseProgram(m_particle_shader);
     PaintGLHelper::setupMatrices(m_particle_shader, m_view, renderData.cameraData);
-    generator.drawParticles(m_fbo, m_particle_shader);
+//    generator.drawParticles(m_fbo, m_particle_shader);
+    for(ParticleGenerator &gen : generators) {
+        gen.drawParticles(m_fbo, m_particle_shader);
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
@@ -366,6 +370,9 @@ void Realtime::paintGL() {
 
     glBindVertexArray(0);
     glUseProgram(0);
+
+    ParticleGenerator geyser1(ParticleGenerator::GeneratorType::FIREWORKS, glm::vec3(-10, 0, -10), 1000);
+    generators.push_back(geyser1);
 }
 
 
@@ -572,7 +579,10 @@ void Realtime::timerEvent(QTimerEvent *event) {
     }
 
     //update particles here
-    generator.updateParticles(deltaTime);
+//    generator.updateParticles(deltaTime);
+    for(ParticleGenerator &gen : generators) {
+        gen.updateParticles(deltaTime);
+    }
 
     // Clamp position to stay within the 10x10x10 cube
     const float minBound = -15.0f;
