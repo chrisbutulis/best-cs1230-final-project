@@ -17,9 +17,9 @@ TerrainGenerator::TerrainGenerator() {
     // genericCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/generic_coral.glb");
 
     // Define file paths
-    const std::string tallCoralPath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/tall_coral.glb";
-    const std::string brainCoralPath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/brain_coral.glb";
-    const std::string genericCoralPath = "C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/generic_coral.glb";
+    const std::string tallCoralPath = "../../src/models/3d-models/tall_coral.glb";
+    const std::string brainCoralPath = "../../src/models/3d-models/brain_coral.glb";
+    const std::string genericCoralPath = "../../src/models/3d-models/generic_coral.glb";
 
     // Model variables
     tinygltf::Model tallCoralModel;
