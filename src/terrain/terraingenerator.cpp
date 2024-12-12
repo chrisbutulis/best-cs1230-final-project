@@ -193,14 +193,14 @@ std::vector<coral*> TerrainGenerator::generateCoralClusters() {
     float brainCoralRadius = 1.0f;
     float genericCoralRadius = 1.0f;
 
-    const int numClusters = 15;
+    const int numClusters = 10;
     const float clusterRadius = 2.0f;
-    const float minClusterDistance = 4.0f;
+    const float minClusterDistance = 3.0f;
 
-    const int numSamplesPerCoral = 10;
+    const int numSamplesPerCoral = 20;
 
-    float terrainWidth = 20.0f;
-    float terrainHeight = 20.0f;
+    float terrainWidth = 25.0f;
+    float terrainHeight = 25.0f;
 
     std::vector<glm::vec2> clusterCenters = generateClusterCenters(terrainWidth, terrainHeight, numClusters, minClusterDistance, numSamplesPerCoral);
 
