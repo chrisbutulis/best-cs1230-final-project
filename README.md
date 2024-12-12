@@ -42,6 +42,6 @@ made by Loïc Norgeot and uploaded to Sketchfab.
 Fish model adapted from [Rainbow Trout - Redband](https://sketchfab.com/3d-models/rainbow-trout-redband-442ab10476d0486e8eb689941bc4ad6e)
 made by eb78 and uploaded to Sketchfab.
 
-Coral models sourced from the Smithsonian
+Coral models sourced from the Smithsonian.
 
-All project handouts can be found [here](https://cs1230.graphics/projects).
+All previous project handouts can be found [here](https://cs1230.graphics/projects).
