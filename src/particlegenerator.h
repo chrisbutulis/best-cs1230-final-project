@@ -29,7 +29,7 @@ public:
     };
 
     ParticleGenerator(GeneratorType type);
-    ParticleGenerator(GeneratorType type, const glm::vec3& position, size_t numParticles);
+    ParticleGenerator(GeneratorType type, glm::vec3 position, int nr_particles);
     void updateParticles(float deltaTime);
     void drawParticles(GLuint m_fullscreen_vao, GLuint m_particle_shader);
     void initParticles();

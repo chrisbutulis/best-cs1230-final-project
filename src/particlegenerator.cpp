@@ -14,11 +14,17 @@
  */
 
 ParticleGenerator::ParticleGenerator(GeneratorType type)
-    : generatorPosition(4.0f, 4.f, 4.0f), // Default position at the origin
+    : generatorPosition(100.0f, 100.f, 100.0f), // Default position at the origin
       nr_particles(1000)                   // Default number of particles
 {
-    initParticles(); // Initialize the particles
     m_type = type;
+    initParticles(); // Initialize the particles
+}
+
+ParticleGenerator::ParticleGenerator(GeneratorType type, glm::vec3 position, int nr_particles) {
+    generatorPosition = position;
+    m_type = type;
+    initParticles();
 }
 
 void ParticleGenerator::updateParticles(float deltaTime) {

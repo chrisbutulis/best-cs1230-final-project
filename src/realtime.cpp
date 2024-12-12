@@ -84,6 +84,7 @@ float kernel[9] = {
 };
 
     GLuint quadVAO, quadVBO;
+    bool generatorOn = false;
     ParticleGenerator generator(ParticleGenerator::GeneratorType::FIREWORKS);
 
 void Realtime::finish() {
@@ -333,7 +334,8 @@ void Realtime::paintGL() {
             if(Player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();
-
+                    glm::vec4 worldPosition = m_fishVector[j].ctm * glm::vec4(0, 0, 0, 1);
+                    generator = ParticleGenerator(ParticleGenerator::GeneratorType::FIREWORKS, glm::vec3(worldPosition), 10000);
 
                 }
             }
@@ -383,7 +385,9 @@ void Realtime::paintGL() {
     //Drawing particles here
     glUseProgram(m_particle_shader);
     PaintGLHelper::setupMatrices(m_particle_shader, m_view, renderData.cameraData);
-    generator.drawParticles(m_fbo, m_particle_shader);
+    if (generatorOn){
+        generator.drawParticles(m_fbo, m_particle_shader);
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER,m_defaultFBO);
     glViewport(0, 0, m_screen_width, m_screen_height);
@@ -614,7 +618,9 @@ void Realtime::timerEvent(QTimerEvent *event) {
     }
 
     //update particles here
-    generator.updateParticles(deltaTime);
+    if (generatorOn){
+        generator.updateParticles(deltaTime);
+    }
 
     // Clamp position to stay within the 10x10x10 cube
     const float minBound = -15.0f;
