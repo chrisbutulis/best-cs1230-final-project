@@ -17,6 +17,7 @@
 #include <QTimer>
 #include "utils/sceneparser.h"
 #include "fishingrod.h"
+#include <thread>
 
 class Realtime : public QOpenGLWidget
 {
@@ -43,6 +44,8 @@ private:
     void mouseMoveEvent(QMouseEvent *event) override;
     void timerEvent(QTimerEvent *event) override;
     void rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float xOffset, float yOffset, float sensitivity = 0.1f);
+    void handleServerUpdates();
+    void sendUpdatesToServer();
 
     // Tick Related Variables
     int m_timer;                                        // Stores timer which attempts to run ~60 times per second
@@ -66,10 +69,17 @@ private:
     GLuint coral_vbo;
     std::vector<coral*> coral_data;
 
+
+    glm::mat4 viewMatrix;
     // Timer
+    std::thread recvUpdateThread;
+    std::thread sendUpdateThread;
+    std::atomic<bool> stopThread{false};
     const char* fontPath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/src/fonts/timer_font.ttf";
+    int secondsRemaining = 30;
 
     // Gameplay
+    float playerNum = 0;
     player Player;
 
     glm::mat4 m_view;

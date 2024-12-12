@@ -57,8 +57,7 @@ add_executable(${PROJECT_NAME}
     src/utils/utils.h src/utils/utils.cpp
     src/player.h
     src/player.cpp
-
-
+    src/utils/serverupdate.h
     src/terrain/terraingenerator.h src/terrain/terraingenerator.cpp
     src/terrain/coral.h src/terrain/coral.cpp
     src/terrain/braincoral.h

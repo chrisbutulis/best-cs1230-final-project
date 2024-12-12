@@ -1,6 +1,7 @@
 #ifndef NETWORKCLIENT_H
 #define NETWORKCLIENT_H
 
+#include "utils/serverupdate.h"
 #include <string>
 #include <thread>
 #include <atomic>
@@ -13,6 +14,8 @@ public:
     int VJoin();                // Join the server
     void VSync(const std::string& updateData, std::string& serverResponse);
     void VDisconnect();                  // Disconnect from the server
+    void VSend(const std::string& updateData);
+    ServerUpdate VReceive();
 
 private:
     void receiveLoop();                  // Handles receiving server messages in a separate thread

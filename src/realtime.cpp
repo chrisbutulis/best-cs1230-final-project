@@ -22,6 +22,10 @@
 #include <QPainter>
 #include <QOpenGLPaintDevice>
 
+
+const int SERVER_TICK_LENGTH = 62; // tick length in ms
+NetworkClient client("10.37.55.169", 9269);
+
 // ================== Project 5: Lights, Camera
 
 Cone Cone;
@@ -44,6 +48,14 @@ Realtime::Realtime(QWidget *parent)
     m_keyMap[Qt::Key_Control] = false;
     m_keyMap[Qt::Key_Space]   = false;
     // If you must use this function, do not edit anything above this
+
+    playerNum = client.VJoin();
+    if(playerNum > 0 ) {
+        std::thread acceptThread(&Realtime::handleServerUpdates, this);
+        acceptThread.detach();
+        std::thread acceptThread2(&Realtime::sendUpdatesToServer, this);
+        acceptThread2.detach();
+    }
 }
 int m_defaultFBO = 2;
 float f = 0.f;
@@ -95,6 +107,37 @@ void Realtime::finish() {
     this->doneCurrent();
 }
 
+void Realtime::handleServerUpdates() {
+    while(true)
+    {        // Receive updates from the server
+        ServerUpdate response = client.VReceive();
+
+        if (response.protocol == 3) {
+            if (!response.payload.empty() &&
+                response.payload != "No other player connected." &&
+                response.payload != "Default data for player 1" &&
+                response.payload != "Default data for player 2") {
+
+                std::cout << "RECEIVED UPDATE: " << response.payload << std::endl;
+                if (!m_fishVector.empty()) {
+                    m_fishVector[0].ctm = glm::inverse(unmarshalMat4(response.payload));
+                }
+            }
+        }
+        if (response.protocol == 4) {
+            secondsRemaining--;
+        }}
+}
+
+void Realtime::sendUpdatesToServer() {
+    while(true) {
+        // Send updates to the server
+        std::this_thread::sleep_for(std::chrono::milliseconds(SERVER_TICK_LENGTH));
+        viewMatrix = PaintGLHelper::calculateViewMatrix(renderData.cameraData);
+        client.VSend(marshalMat4(viewMatrix));
+    }
+}
+
 
 void makeFBO(){
     // Task 19: Generate and bind an empty texture, set its min/mag filter interpolation, then unbind
@@ -144,7 +187,6 @@ void makeFBO(){
     glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
 }
 
-NetworkClient client("10.37.55.169", 9269);
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
 
@@ -220,8 +262,7 @@ void Realtime::initializeGL() {
 
     sceneChanged();
     settingsChanged();
-    int playerNum = client.VJoin();
-    
+
     if (playerNum<1) {
         std::cerr << "Failed to connect to the server." << std::endl;
     }
@@ -281,14 +322,14 @@ void Realtime::paintGL() {
         }
     }
 
-    glm::mat4 viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
-    std::string serverResponse;
-    client.VSync(marshalMat4(viewMatrix), serverResponse);
+    viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
+    // std::string serverResponse;
+    //client.VSync(marshalMat4(viewMatrix), serverResponse);
         for(int j =0; j<m_fishVector.size();j++){
             // m_fishVector[j].moveForward();
             // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
             // m_fishVector[j].update(t);
-            m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
+            // m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
             if(Player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();
@@ -357,7 +398,8 @@ void Realtime::paintGL() {
     painter.setRenderHint(QPainter::TextAntialiasing);
     painter.setPen(Qt::white);
     painter.setFont(QFont("Arial", 16));
-    painter.drawText(10, 30, "Hello, OpenGL!");
+    QString text = "Time Remaining: " + QString::number(secondsRemaining);
+    painter.drawText(10, 30, text);
     painter.end();
     // glDisable(GL_BLEND); // Disable blending if not required
     glEnable(GL_DEPTH_TEST); // Ensure depth testing is enabled

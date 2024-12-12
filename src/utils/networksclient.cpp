@@ -1,4 +1,5 @@
 #include "networksclient.h"
+#include "serverupdate.h"
 #include <iostream>
 #include <cstring>     // For memset
 #include <unistd.h>    // For close()
@@ -104,6 +105,48 @@ int NetworkClient::VJoin() {
     return playerNumber;
 }
 
+ServerUpdate NetworkClient::VReceive() {
+    if (!connected) {
+        std::cerr << "Not connected to the server." << std::endl;
+        return ServerUpdate{0, "", 0, 0};
+    }
+
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
+    if (bytesRead <= 0) {
+        std::cerr << "Failed to receive data from the server." << std::endl;
+        return ServerUpdate{0, "", 0, 0};
+    }
+
+    // Parse the response
+    int length, protocol, senderPlayerNumber;
+    parseHeader(buffer, length, senderPlayerNumber, protocol);
+    if (protocol != 3 && protocol != 4 || senderPlayerNumber != playerNumber) {
+        std::cerr << "Invalid sync response." << std::endl;
+        return ServerUpdate{0, "", 0, 0};
+    }
+
+    // Extract the server's response payload
+    std::string payload = std::string(buffer + 12, length - 12);
+    return ServerUpdate(protocol, payload, length, senderPlayerNumber);
+
+}
+
+void NetworkClient::VSend(const std::string& updateData) {
+    if (!connected) {
+        std::cerr << "Not connected to the server." << std::endl;
+        return;
+    }
+
+    // Send an update request (Protocol 3)
+    auto message = createMessage(playerNumber, 3, updateData);
+    if (send(clientSocket, message.data(), message.size(), 0) < 0) {
+        perror("Failed to send update data");
+        return;
+    }
+}
+
 void NetworkClient::VSync(const std::string& updateData, std::string& serverResponse) {
     if (!connected) {
         std::cerr << "Not connected to the server." << std::endl;
@@ -129,7 +172,7 @@ void NetworkClient::VSync(const std::string& updateData, std::string& serverResp
     // Parse the response
     int length, protocol, senderPlayerNumber;
     parseHeader(buffer, length, senderPlayerNumber, protocol);
-    if (protocol != 3 && protocol != 4 || senderPlayerNumber != playerNumber) {
+    if (protocol != 3 && protocol != 4|| senderPlayerNumber != playerNumber) {
         std::cerr << "Invalid sync response." << std::endl;
         return;
     }
