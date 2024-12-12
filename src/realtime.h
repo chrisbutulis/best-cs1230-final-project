@@ -53,6 +53,7 @@ private:
     FishingRod m_fishingRod;
     // Input Related Variables
     bool m_mouseDown = false;                           // Stores state of left mouse button
+    bool m_rightMouseDown = false;
     glm::vec2 m_prev_mouse_pos;                         // Stores mouse position
     std::unordered_map<Qt::Key, bool> m_keyMap;         // Stores whether keys are pressed or not
 
@@ -75,8 +76,9 @@ private:
     std::thread recvUpdateThread;
     std::thread sendUpdateThread;
     std::atomic<bool> stopThread{false};
-    const char* fontPath = "/Users/robertogonzales/Desktop/CS1230/best-cs1230-final-project/src/fonts/timer_font.ttf";
+    const char* fontPath = ":/src/fonts/timer_font.ttf";
     int secondsRemaining = 30;
+    QFont customFont;
 
     // Gameplay
     float playerNum = 0;

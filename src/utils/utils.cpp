@@ -23,7 +23,7 @@ std::string marshalMat4(const glm::mat4& matrix) {
 
 // Unmarshals a string back into a glm::mat4
 glm::mat4 unmarshalMat4(const std::string& str) {
-     std::cout << str << std::endl;
+    std::cout << str << std::endl;
     if (str == "No other player connected."){
         return glm::mat4(0);
     }
@@ -38,7 +38,8 @@ glm::mat4 unmarshalMat4(const std::string& str) {
 
     // Ensure we have exactly 16 elements for a 4x4 matrix
     if (elements.size() != 16) {
-        throw std::invalid_argument("Invalid string format for glm::mat4.");
+        return glm::mat4(0);
+        // throw std::invalid_argument("Invalid string format for glm::mat4.");
     }
 
     // Construct the glm::mat4
@@ -51,3 +52,4 @@ glm::mat4 unmarshalMat4(const std::string& str) {
 
     return matrix;
 }
+

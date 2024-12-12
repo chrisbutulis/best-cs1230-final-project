@@ -80,7 +80,6 @@ void modelloader::loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> da
     glBindVertexArray(vao);
 
     // Enable and set vertex attribute pointers
-    // Attribute 0: Position (3 floats)
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat)*6, 0); // Vertex attribute
@@ -104,16 +103,13 @@ void modelloader::renderModel(GLuint &shader, GLuint &terrain_vao, RenderData re
 
         glm::mat4 ctm = glm::mat4(1.0f); // Start with identity matrix
 
-        // Translation: Move the coral to (0, 0, -5)
         ctm = glm::translate(ctm, glm::vec3(0.0f, 0.0f, 0.0f));
 
-        // Rotation: Rotate 45 degrees around Y, 15 degrees around X
         ctm = glm::rotate(ctm, glm::radians(0.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Y-axis rotation
         ctm = glm::rotate(ctm, glm::radians(0.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // X-axis rotation
 
         // Scaling: Uniformly scale to half size
         ctm = glm::scale(ctm, glm::vec3(2.0f, 2.0f, 2.0f));
-
 
         glUniformMatrix4fv(glGetUniformLocation(shader, "modelMatrix"), 1, GL_FALSE, &ctm[0][0]);
         glUniform4fv(glGetUniformLocation(shader, "shapeColor"), 1, glm::value_ptr(shape.primitive.material.cAmbient * globalData.ka));
@@ -126,7 +122,6 @@ void modelloader::renderModel(GLuint &shader, GLuint &terrain_vao, RenderData re
         glBindVertexArray(0);
     }
 }
-
 
 int modelloader::LoadGLB(const std::string &filename, tinygltf::Model &model) {
     tinygltf::TinyGLTF loader;
@@ -206,6 +201,7 @@ std::vector<float> modelloader::LoadVerticesNormals(tinygltf::Model &model) {
 
     //if no animations
     std::vector<glm::mat4> globalTransforms = std::vector<glm::mat4>(model.nodes.size(), glm::mat4(1.0f));
+
     //else (if animations), init to result of apply animations helper
 
     for (int rootNode : model.scenes[model.defaultScene >= 0 ? model.defaultScene : 0].nodes) {

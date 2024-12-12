@@ -11,11 +11,19 @@
 #include <iostream>
 #include <random>
 
-TerrainGenerator::TerrainGenerator() {
-    // tallCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/tall_coral.glb");
-    // brainCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/brain_coral.glb");
-    // genericCoralData = modelloader::LoadGLBVerticesNormals("C:/Users/eitan/OneDrive/Documents/cs123/best-cs1230-final-project/src/models/3d-models/generic_coral.glb");
+const float tallCoralRadius = 1.5f;
+const float brainCoralRadius = 1.0f;
+const float genericCoralRadius = 1.0f;
 
+const int numClusters = 10;
+const float clusterRadius = 2.0f;
+const float minClusterDistance = 3.0f;
+const int numSamplesPerCoral = 20;
+
+const float terrainWidth = 25.0f;
+const float terrainHeight = 25.0f;
+
+TerrainGenerator::TerrainGenerator() {
     // Define file paths
     const std::string tallCoralPath = "../../src/models/3d-models/tall_coral.glb";
     const std::string brainCoralPath = "../../src/models/3d-models/brain_coral.glb";
@@ -28,7 +36,6 @@ TerrainGenerator::TerrainGenerator() {
 
     // Load tall coral
     if (modelloader::LoadGLB(tallCoralPath, tallCoralModel) == 0) {
-        // std::vector<glm::mat4> transforms = std::vector<glm::mat4>(tallCoralModel.nodes.size(), glm::mat4(1.0f));
         tallCoralData = modelloader::LoadVerticesNormals(tallCoralModel);
     } else {
         std::cerr << "Failed to load " << tallCoralPath << std::endl;
@@ -36,7 +43,6 @@ TerrainGenerator::TerrainGenerator() {
 
     // Load brain coral
     if (modelloader::LoadGLB(brainCoralPath, brainCoralModel) == 0) {
-        // std::vector<glm::mat4> transforms = std::vector<glm::mat4>(tallCoralModel.nodes.size(), glm::mat4(1.0f));
         brainCoralData = modelloader::LoadVerticesNormals(brainCoralModel);
     } else {
         std::cerr << "Failed to load " << brainCoralPath << std::endl;
@@ -44,7 +50,6 @@ TerrainGenerator::TerrainGenerator() {
 
     // Load generic coral
     if (modelloader::LoadGLB(genericCoralPath, genericCoralModel) == 0) {
-        // std::vector<glm::mat4> transforms = std::vector<glm::mat4>(tallCoralModel.nodes.size(), glm::mat4(1.0f));
         genericCoralData = modelloader::LoadVerticesNormals(genericCoralModel);
     } else {
         std::cerr << "Failed to load " << genericCoralPath << std::endl;
@@ -54,24 +59,20 @@ TerrainGenerator::TerrainGenerator() {
 glm::mat4 getCTM(float xTransform, float zTransform) {
     glm::mat4 ctm = glm::mat4(1.0f);
 
-    // Translation: Move the coral to (xTransform, -0.4, zTransform)
     ctm = glm::translate(ctm, glm::vec3(xTransform, -0.4f, zTransform));
 
-    // Rotation: Rotate randomly around Y-axis for natural orientation
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> rotationDist(0.0f, 360.0f);
     float rotationY = glm::radians(rotationDist(gen));
     ctm = glm::rotate(ctm, rotationY, glm::vec3(0.0f, 1.0f, 0.0f));
 
-    // Slight tilts around X and Z axes for natural variation
     std::uniform_real_distribution<float> tiltDist(-10.0f, 10.0f);
     float tiltX = glm::radians(tiltDist(gen));
     float tiltZ = glm::radians(tiltDist(gen));
     ctm = glm::rotate(ctm, tiltX, glm::vec3(1.0f, 0.0f, 0.0f));
     ctm = glm::rotate(ctm, tiltZ, glm::vec3(0.0f, 0.0f, 1.0f));
 
-    // Scaling
     ctm = glm::scale(ctm, glm::vec3(5.0f, 5.0f, 5.0f));
 
     return ctm;
@@ -98,11 +99,6 @@ std::vector<glm::vec2> generateClusterCenters(float width, float height, int num
             centers.push_back(candidate);
         }
         attempts++;
-    }
-
-    if (centers.size() < numClusters) {
-        std::cerr << "Warning: Only placed " << centers.size() << " out of " << numClusters
-                  << " clusters due to space constraints.\n";
     }
 
     return centers;
@@ -217,24 +213,9 @@ std::vector<glm::vec2> getPoissonDiscSamplesInCluster(glm::vec2 center, float cl
     return adjustedPoints;
 }
 
+// Main generator func using poisson disc samples for each type of coral
 std::vector<coral*> TerrainGenerator::generateCoralClusters() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(1, 2);
-
     std::vector<coral*> toReturn;
-    float tallCoralRadius = 1.5f;
-    float brainCoralRadius = 1.0f;
-    float genericCoralRadius = 1.0f;
-
-    const int numClusters = 10;
-    const float clusterRadius = 2.0f;
-    const float minClusterDistance = 3.0f;
-
-    const int numSamplesPerCoral = 20;
-
-    float terrainWidth = 25.0f;
-    float terrainHeight = 25.0f;
 
     std::vector<glm::vec2> clusterCenters = generateClusterCenters(terrainWidth, terrainHeight, numClusters, minClusterDistance, numSamplesPerCoral);
 

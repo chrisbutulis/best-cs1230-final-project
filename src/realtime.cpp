@@ -21,12 +21,11 @@
 #include "utils/utils.h"
 #include <QPainter>
 #include <QOpenGLPaintDevice>
+#include <QFontDatabase>
 
 
 const int SERVER_TICK_LENGTH = 62; // tick length in ms
 NetworkClient client("10.37.55.169", 9269);
-
-// ================== Project 5: Lights, Camera
 
 Cone Cone;
 Cylinder Cylinder;
@@ -47,14 +46,20 @@ Realtime::Realtime(QWidget *parent)
     m_keyMap[Qt::Key_D]       = false;
     m_keyMap[Qt::Key_Control] = false;
     m_keyMap[Qt::Key_Space]   = false;
-    // If you must use this function, do not edit anything above this
 
     playerNum = client.VJoin();
     if(playerNum > 0 ) {
-        std::thread acceptThread(&Realtime::handleServerUpdates, this);
-        acceptThread.detach();
-        std::thread acceptThread2(&Realtime::sendUpdatesToServer, this);
-        acceptThread2.detach();
+        recvUpdateThread = std::thread(&Realtime::handleServerUpdates, this);
+        sendUpdateThread = std::thread(&Realtime::sendUpdatesToServer, this);
+    }
+    int fontId = QFontDatabase::addApplicationFont(fontPath);
+
+    if (fontId == -1) {
+        qDebug() << "Failed to load font from:" << fontPath;
+    } else {
+        QString fontFamily = QFontDatabase::applicationFontFamilies(fontId).at(0);
+        // Create a QFont object with the loaded font family
+        customFont = QFont(fontFamily, 23); // Specify font size
     }
 }
 int m_defaultFBO = 2;
@@ -102,14 +107,12 @@ void Realtime::finish() {
     glDeleteTextures(1, &m_fbo_texture);
     glDeleteFramebuffers(1, &m_fbo);
 
-    //TODO: delete all the coral and fish vaos vbos
-
     this->doneCurrent();
 }
 
 void Realtime::handleServerUpdates() {
-    while(true)
-    {        // Receive updates from the server
+    while(!stopThread)
+    {   // Receive updates from the server
         ServerUpdate response = client.VReceive();
 
         if (response.protocol == 3) {
@@ -118,29 +121,31 @@ void Realtime::handleServerUpdates() {
                 response.payload != "Default data for player 1" &&
                 response.payload != "Default data for player 2") {
 
-                std::cout << "RECEIVED UPDATE: " << response.payload << std::endl;
                 if (!m_fishVector.empty()) {
                     m_fishVector[0].ctm = glm::inverse(unmarshalMat4(response.payload));
                 }
             }
         }
         if (response.protocol == 4) {
-            secondsRemaining--;
-        }}
+            if(secondsRemaining>0) {
+                secondsRemaining--;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 }
 
 void Realtime::sendUpdatesToServer() {
-    while(true) {
-        // Send updates to the server
+    while(!stopThread) {
+        // Send periodic updates to the server
         std::this_thread::sleep_for(std::chrono::milliseconds(SERVER_TICK_LENGTH));
         viewMatrix = PaintGLHelper::calculateViewMatrix(renderData.cameraData);
         client.VSend(marshalMat4(viewMatrix));
     }
 }
 
-
 void makeFBO(){
-    // Task 19: Generate and bind an empty texture, set its min/mag filter interpolation, then unbind
+    // Generate and bind an empty texture, set its min/mag filter interpolation, then unbind
     glGenTextures(1, &m_fbo_texture);
     glActiveTexture(GL_TEXTURE0); // Bind to texture slot 0
     glBindTexture(GL_TEXTURE_2D, m_fbo_texture);
@@ -166,7 +171,7 @@ void makeFBO(){
     glBindTexture(GL_TEXTURE_2D, 0);
 
 
-    // Task 20: Generate and bind a renderbuffer of the right size, set its format, then unbind
+    // Generate and bind a renderbuffer of the right size, set its format, then unbind
     glGenRenderbuffers(1, &m_fbo_renderbuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, m_fbo_renderbuffer);
 
@@ -176,20 +181,16 @@ void makeFBO(){
     // Unbind the renderbuffer
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-
-    // Task 18: Generate and bind an FBO
     glGenFramebuffers(1,&m_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fbo_texture, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_fbo_renderbuffer);
 
-    // Task 22: Unbind the FBO
     glBindFramebuffer(GL_FRAMEBUFFER, m_defaultFBO);
 }
 
 void Realtime::initializeGL() {
     m_devicePixelRatio = this->devicePixelRatio();
-
     m_timer = startTimer(1000/60);
     m_elapsedTimer.start();
     m_screen_width = size().width() * m_devicePixelRatio;
@@ -209,7 +210,6 @@ void Realtime::initializeGL() {
     glEnable(GL_CULL_FACE);
     glViewport(0, 0, size().width() * m_devicePixelRatio, size().height() * m_devicePixelRatio);
 
-    // Shader setup (DO NOT EDIT)
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
     m_texture_shader = ShaderLoader::createShaderProgram(":/resources/shaders/postP.vert", ":/resources/shaders/postP.frag");
     m_particle_shader = ShaderLoader::createShaderProgram(":/resources/shaders/particle.vert", ":/resources/shaders/particle.frag");
@@ -241,12 +241,12 @@ void Realtime::initializeGL() {
     glGenVertexArrays(1, &m_fullscreen_vao);
     glBindVertexArray(m_fullscreen_vao);
 
-
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
 
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+
     // Set the background color to a deep underwater blue
     glClearColor(0.0f, 0.1f, 0.3f, 1.0f);
 
@@ -308,7 +308,6 @@ void Realtime::paintGL() {
     glBindFramebuffer(GL_FRAMEBUFFER,m_fbo);
     glViewport(0, 0, m_fbo_width, m_fbo_height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // m_fishingRod.setLineEnd(glm::vec3(4.5,2+2*sin(f*30),2));ww
     glUseProgram(m_shader);
 
     if(Player.playerType == player::PlayerType::Fisherman) {
@@ -323,18 +322,11 @@ void Realtime::paintGL() {
     }
 
     viewMatrix = PaintGLHelper::setupMatrices(m_shader, m_view, renderData.cameraData);
-    // std::string serverResponse;
-    //client.VSync(marshalMat4(viewMatrix), serverResponse);
+
         for(int j =0; j<m_fishVector.size();j++){
-            // m_fishVector[j].moveForward();
-            // m_fishVector[j].setRotation(m_fishVector[j].up,glm::sin(t));
-            // m_fishVector[j].update(t);
-            // m_fishVector[j].ctm = glm::inverse(unmarshalMat4(serverResponse));
             if(Player.playerType == player::PlayerType::Fisherman) {
                 if(m_fishingRod.collition(m_fishVector[j].ctm*glm::vec4(0,0,0,1))){
                     m_fishVector[j].changeColor();
-
-
                 }
             }
             PaintGLHelper::renderFish(m_shader, m_fishVector[j], renderData);
@@ -357,7 +349,6 @@ void Realtime::paintGL() {
     } else if (pressDuration > 0) {
         isThrowing = true;
         cooldownTime = 3.0f * (1.0f - 0.5f*pressDuration);
-        // pressDuration = 0.0f; // Reset press duration
     }
 
     if (isThrowing) {
@@ -397,17 +388,14 @@ void Realtime::paintGL() {
     QPainter painter(&device);
     painter.setRenderHint(QPainter::TextAntialiasing);
     painter.setPen(Qt::white);
-    painter.setFont(QFont("Arial", 16));
+    painter.setFont(customFont);
     QString text = "Time Remaining: " + QString::number(secondsRemaining);
     painter.drawText(10, 30, text);
     painter.end();
-    // glDisable(GL_BLEND); // Disable blending if not required
+
     glEnable(GL_DEPTH_TEST); // Ensure depth testing is enabled
 
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     glBindVertexArray(0);
-    glUseProgram(0);
 }
 
 
@@ -459,9 +447,7 @@ void Realtime::sceneChanged() {
             break;
         }
     }
-    // for(int j =0; j<m_fishVector.size();j++){
-    //     m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
-    // }
+
     m_fishingRod.setVAOandDataSize(Cylinder.vao,Cylinder.generateShape().size());
     OpenGLHelper::updateShapesAndBuffers(renderData, m_view, Cylinder, Cone, Cube, Sphere, settings);
     SceneCameraData& camera = renderData.cameraData;
@@ -474,14 +460,10 @@ void Realtime::sceneChanged() {
 
 void Realtime::settingsChanged() {
     OpenGLHelper::updateShapesAndBuffers(renderData, m_view, Cylinder, Cone, Cube, Sphere, settings);
-    // for(int j =0; j<m_fishVector.size();j++){
-    //     m_fishVector[j].setVAOandDataSize(Cube.vao,Cube.generateShape().size());
-    // }
+
     m_fishingRod.setVAOandDataSize(Cylinder.vao,Cylinder.generateShape().size());
     update();
 }
-
-// ================== Project 6: Action!
 
 void Realtime::keyPressEvent(QKeyEvent *event) {
     m_keyMap[Qt::Key(event->key())] = true;
@@ -521,11 +503,9 @@ glm::mat3 rodriguesRotate(const glm::vec3& axis, float angleRadians) {
 void Realtime::rotateCameraRodrigues(glm::vec3& lookVector, glm::vec3& up, float xOffset, float yOffset, float sensitivity) {
 
     glm::mat3 Xmat = rodriguesRotate(glm::vec3{0,1,0}, glm::radians(xOffset*0.5f));
-
     glm::vec3 right = glm::normalize(glm::cross(lookVector, up));
-    // m_fishingRod.setRotation(glm::vec3{0,1,0}, glm::radians(xOffset*0.5f));
     glm::mat3 Ymat =  rodriguesRotate(right, glm::radians(yOffset*0.5f));
-    // m_fishingRod.setRotation(right, glm::radians(yOffset*0.5f));
+
     glm::vec3 newLook = Ymat * Xmat * glm::vec3(lookVector);
     glm::vec3 newUp = Ymat * Xmat * glm::vec3(up);
     lookVector = newLook;
@@ -551,6 +531,7 @@ void Realtime::mouseMoveEvent(QMouseEvent *event) {
 
         // Update the camera's look and up vectors
         camera.look = glm::normalize(glm::vec4(look, 0.0f));
+
         update(); // asks for a PaintGL() call to occur
     }
 }
@@ -616,12 +597,12 @@ void Realtime::timerEvent(QTimerEvent *event) {
     //update particles here
     generator.updateParticles(deltaTime);
 
-    // Clamp position to stay within the 10x10x10 cube
-    const float minBound = -15.0f;
-    const float maxBound = 15.0f;
+    // Clamp position to stay within the cube
+    const float minBound = -9.5f;
+    const float maxBound = 9.5f;
 
     newPos.x = glm::clamp(newPos.x, minBound, maxBound);
-    newPos.y = glm::clamp(newPos.y, 0.0f, maxBound);
+    newPos.y = glm::clamp(newPos.y, 0.0f, 12.0f);
     newPos.z = glm::clamp(newPos.z, minBound, maxBound);
 
     // Update camera position
@@ -636,13 +617,6 @@ float rot = 0;
 bool neg = true;
 float transl = 0;
 void Realtime::updateFishAnimations() {
-    //for each fish in m_fishVector
-        //(fish has a model member variable and a current time member variable)
-        //updateanimation (use animation index 1)
-        //apply animation to globalTransforms member in fish
-        //call loadVerticesNormals and save it to fishData
-        //call modelloader::loadArrayToVBO(opponent.vbo, opponent.vao, opponent.fishData);
-    // std::cout <<"num fish "<<m_fishVector.size()<<std::endl;
     for(fish& fish : m_fishVector) {
 
         fish.globalTransforms = std::vector<glm::mat4>(fish.model.nodes.size(), glm::mat4(1.0f));

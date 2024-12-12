@@ -11,12 +11,12 @@ public:
     static void loadArrayToVBO(GLuint& vbo, GLuint& vao, std::vector<float> data);
     static void updateVBO(GLuint vbo, const std::vector<float>& data);
     static void renderModel(GLuint &shader, GLuint &vao, RenderData renderData, std::vector<float> data);
-    // static std::vector<float> LoadGLBVerticesNormals(const std::string &filename);
 
     //no animations, initialized global transforms to identity
     static std::vector<float> LoadVerticesNormals(tinygltf::Model &model);
 
     static std::vector<float> LoadVerticesNormals(tinygltf::Model &model, std::vector<glm::mat4> &globalTransforms);
+
     /**
      * @brief LoadGLB
      * @param filename - glb filepath

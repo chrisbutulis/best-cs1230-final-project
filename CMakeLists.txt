@@ -105,6 +105,7 @@ qt6_add_resources(${PROJECT_NAME} "Resources"
         src/models/3d-models/tall_coral.glb
         src/models/3d-models/generic_coral.glb
         src/models/3d-models/tall_coral.glb
+        src/fonts/timer_font.ttf
 )
 
 # GLEW: this provides support for Windows (including 64-bit)
